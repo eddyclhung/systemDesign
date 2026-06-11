@@ -4,11 +4,15 @@ Offline, self-contained HTML reference guides for system design interview prep. 
 
 **Start here:** [`cheatSheet/index.html`](cheatSheet/index.html)
 
-**View on GitHub:** The interactive `.html` files **do not work** in GitHub's file preview (scripts are stripped). Use instead:
-- [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) — pre-rendered, works on GitHub
-- [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) — Markdown per system
+**View on GitHub:** Clicking `.html` in the repo shows **source code**, not a rendered page (GitHub serves HTML as plain text). Use:
 
-Enable **GitHub Pages** (Settings → Pages → GitHub Actions) for full interactivity at `https://<user>.github.io/<repo>/`.
+| What you want | Open this |
+|---------------|-----------|
+| **Browse in GitHub now** | [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) — 40 systems (Markdown) |
+| **HTML in browser (no clone)** | [html-preview](https://html-preview.github.io/?https://github.com/eddyclhung/systemDesign/blob/main/cheatSheet/github/v15-static.html) or see [`cheatSheet/VIEW_ON_GITHUB.md`](cheatSheet/VIEW_ON_GITHUB.md) |
+| **Full interactivity** | Enable **GitHub Pages** (Settings → Pages → GitHub Actions) → `https://eddyclhung.github.io/systemDesign/` |
+
+Pre-rendered HTML (`*_github.html`) is for **GitHub Pages** or preview tools — not the repo file click-to-preview.
 
 ```mermaid
 flowchart TB
@@ -49,7 +53,9 @@ flowchart TB
 | File | Description |
 |------|-------------|
 | [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10 or v15 |
-| [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) | **v15 for GitHub** — pre-rendered cards (works in repo preview) |
+| [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) | **v15 on GitHub** — Markdown (renders in repo browser) |
+| [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) | **v15 HTML** — pre-rendered for Pages / html-preview |
+| [`cheatSheet/VIEW_ON_GITHUB.md`](cheatSheet/VIEW_ON_GITHUB.md) | **Viewing guide** — what works where |
 | [`cheatSheet/SystemDesign_Complete_v10_github.html`](cheatSheet/SystemDesign_Complete_v10_github.html) | **v10 for GitHub** — pre-rendered system cards |
 | [`cheatSheet/github/`](cheatSheet/github/) | Markdown per system |
 | [`cheatSheet/SystemDesign_Complete_v10.html`](cheatSheet/SystemDesign_Complete_v10.html) | ByteByteGo Vol. 1 & 2 deep-dive + 26 system cards + cloud appendix |
