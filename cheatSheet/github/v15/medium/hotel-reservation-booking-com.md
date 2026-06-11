@@ -11,6 +11,16 @@ Search reads Elasticsearch + Redis availability cache. Booking runs SELECT FOR U
 
 > SELECT FOR UPDATE on inventory row  |  Idempotency key on book  |  Saga: reserve → pay → confirm
 
+## Architecture diagram
+
+```
+Search: User -> ES/Redis (approximate)
+Book:   User -> Booking Svc -> PG FOR UPDATE -> Kafka -> Payment -> Confirm
+```
+
+Two paths: fast approximate search, exact transactional booking.
+
+
 ---
 
 <details open>

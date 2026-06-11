@@ -11,6 +11,16 @@ Consistent hashing maps keys to nodes; adding a node remaps only K/n keys. Write
 
 > Consistent hash: add node remaps K/n keys  |  W+R>N for quorum read  |  Vector clock resolves conflicts
 
+## Architecture diagram
+
+```
+Client -> Coordinator -> hash ring -> Replica nodes (N=3)
+         W writes, R reads, gossip membership
+```
+
+Ring diagram + quorum numbers on whiteboard.
+
+
 ---
 
 <details open>

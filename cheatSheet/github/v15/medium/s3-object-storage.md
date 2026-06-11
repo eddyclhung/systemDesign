@@ -11,6 +11,16 @@ Clients call the API gateway. The metadata service maps bucket/key → data node
 
 > Metadata separate from bytes  |  Consistent hash ring for data nodes  |  11-nines via replication + erasure coding
 
+## Architecture diagram
+
+```
+Client -> API -> Metadata DB (bucket/key -> node list)
+              -> Data nodes (replicated chunks)
+```
+
+Metadata is the control plane; data nodes are the data plane.
+
+
 ---
 
 <details open>

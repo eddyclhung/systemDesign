@@ -11,6 +11,76 @@ RSS crawlers feed articles into Kafka. A dedup service computes a SimHash finger
 
 > SimHash → near-dup if Hamming dist < 3  |  Cluster into "story"  |  Rank = recency × authority
 
+## Architecture diagram
+
+```
++----------------------+
+                        |   News Publishers    |
+                        | RSS APIs Webhooks    |
+                        +----------+-----------+
+                                   |
+                                   v
+                    +-------------------------------+
+                    | Data Collection Service       |
+                    | poll feeds parse ingest media |
+                    +---------------+---------------+
+                                    |
+                 +------------------+------------------+
+                 |                                     |
+                 v                                     v
+      +----------------------+              +----------------------+
+      |   Article Database   |              |   Object Storage     |
+      | articles publishers  |              | thumbnails images    |
+      +----------+-----------+              +----------+-----------+
+                 |                                     |
+                 | new article writes                  |
+                 v                                     v
+      +----------------------+              +----------------------+
+      |   CDC Event Stream   |              |   CDN               |
+      | change notifications |              | serve thumbnails    |
+      +----------+-----------+              +----------------------+
+                 |
+                 v
+      +------------------------------+
+      | Feed Generation Workers      |
+      | update regional feed caches  |
+      +--------------+---------------+
+                     |
+                     v
+      +------------------------------+
+      | Redis Feed Cache             |
+      | feed:US feed:UK sorted sets  |
+      | recent article ids by time   |
+      +--------------+---------------+
+                     |
+                     v
++-----------+   +----------------------+   +------------------+
+|  Client   |-->|     API Gateway      |-->|   Feed Service   |
+| web mobile|   | auth rate limit      |   | get feed paginate|
++-----------+   +----------------------+   +---------+--------+
+                                                       |
+                                  +--------------------+-------------------+
+                                  |                                        |
+                                  v                                        v
+                        +----------------------+                +----------------------+
+                        | Redis Feed Cache     |                |  Article Database    |
+                        | primary read path    |                | cache miss fallback  |
+                        +----------------------+                +----------------------+
+                                                       |
+                                                       v
+                                              +------------------+
+                                              | Feed Response    |
+                                              | title summary    |
+                                              | thumbnail url    |
+                                              | publisher url    |
+                                              +------------------+
+```
+
+The main idea is two pipelines. One pipeline ingests articles from publishers and stores article metadata plus thumbnails. The other pipeline serves users by reading precomputed regional feeds from Redis so feed requests stay fast.
+
+If you want the best interview version, draw the high level boxes first, then call out one improvement. Use cursor pagination for infinite scroll and Redis precomputed regional feeds for low latency. That shows the core system clearly without overcrowding the board.
+
+
 ---
 
 <details open>

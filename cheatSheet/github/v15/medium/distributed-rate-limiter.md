@@ -11,6 +11,80 @@ Every request hits the API gateway which runs a Lua script in Redis — atomical
 
 > Token Bucket: refill rate R, cost 1/req  |  Lua = atomic check+decrement  |  Fail open vs closed = design choice
 
+## Architecture diagram
+
+```
++----------------------+
+                              |   Config Service     |
+                              | rules and limits     |
+                              +----------+-----------+
+                                         |
+                                   periodic sync
+                                         |
++---------+      HTTPS      +------------v-------------+
+| Clients | --------------> | API Gateway / LB Layer   |
+| users   |                 | auth parse + rate limit  |
+| IPs     |                 | check before app traffic |
++---------+                 +------+---------+---------+
+                                   |         |
+                     allow request |         | reject request
+                                   |         |
+                                   |         v
+                                   |   +----------------------+
+                                   |   | 429 Response Builder |
+                                   |   | limit remaining reset|
+                                   |   +----------------------+
+                                   |
+                                   v
+                         +---------+----------+
+                         | Backend Services   |
+                         | social media APIs  |
+                         +--------------------+
+
+Inside the gateway rate limiter path
+
+        extract client key
+ userId or IP or apiKey + endpoint rule
+                 |
+                 v
+      +----------+-----------+
+      | Shard Router         |
+      | hash client key      |
+      +----------+-----------+
+                 |
+                 v
+      +----------+-----------------------------------+
+      | Redis Cluster                                |
+      | shared bucket state across gateway instances |
+      |                                              |
+      |  shard 1     shard 2     shard 3     ...     |
+      | +--------+  +--------+  +--------+           |
+      | |alice   |  |bob     |  |carol   |           |
+      | |tokens  |  |tokens  |  |tokens  |           |
+      | |refill  |  |refill  |  |refill  |           |
+      | +--------+  +--------+  +--------+           |
+      +-------------------+--------------------------+
+                          |
+                 atomic Lua script
+                          |
+                          v
+         read bucket -> refill tokens -> consume 1 -> return decision
+
+Per shard HA
+
+        +------------------+
+        | Redis Primary    |
+        +--------+---------+
+                 |
+             replicate
+                 |
+        +--------v---------+
+        | Redis Replica    |
+        +------------------+
+
+Request flow
+```
+
 ---
 
 <details open>

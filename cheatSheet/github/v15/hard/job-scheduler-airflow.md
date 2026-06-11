@@ -11,6 +11,95 @@ A single scheduler leader is elected via ZooKeeper/etcd. It polls PostgreSQL for
 
 > Leader election = single scheduler = no double-schedule  |  Heartbeat timeout → requeue  |  SETNX = idempotent
 
+## Architecture diagram
+
+```
++-------------------+
+                           |       User        |
+                           +---------+---------+
+                                     |
+                               POST /jobs
+                               GET /jobs
+                                     |
+                                     v
+                        +------------+------------+
+                        |        API Service       |
+                        +------------+------------+
+                                     |
+                   +-----------------+-----------------+
+                   |                                   |
+                   v                                   v
+          +--------+--------+                 +--------+---------+
+          |    Jobs Table   |                 | Executions Table |
+          | job definition  |                 | run instances    |
+          +--------+--------+                 +--------+---------+
+                   |                                   |
+                   |                         GSI on user_id + time
+                   |                                   |
+                   |                                   v
+                   |                         +---------+---------+
+                   |                         | Status Query Path |
+                   |                         +-------------------+
+                   |
+                   |        every 5 min scans next ~5 min
+                   v
+          +--------+--------+
+          | Scheduler Cron  |
+          | / Dispatcher    |
+          +--------+--------+
+                   |
+                   | enqueue with delay
+                   v
+          +--------+---------+
+          |   Delayed Queue  |
+          |   SQS / Redis    |
+          +--------+---------+
+                   |
+                   | messages become visible near run time
+                   v
+        +----------+----------+------------+
+        |                     |            |
+        v                     v            v
+   +----+-----+          +----+-----+  +---+------+
+   | Worker A |          | Worker B |  | Worker N |
+   +----+-----+          +----+-----+  +---+------+
+        |                     |            |
+        +----------+----------+------------+
+                   |
+                   | fetch job details
+                   v
+          +--------+--------+
+          |    Jobs Table   |
+          +--------+--------+
+                   |
+                   | execute task
+                   v
+          +--------+--------+
+          | Task Handler(s) |
+          | email, webhook, |
+          | cleanup, etc.   |
+          +--------+--------+
+                   |
+         +---------+----------+
+         |                    |
+         v                    v
+ +-------+-------+    +-------+--------+
+ | success       |    | failure        |
+ | mark complete |    | retry w backoff|
+ +-------+-------+    +-------+--------+
+         |                    |
+         +---------+----------+
+                   |
+                   v
+          +--------+---------+
+          | Executions Table |
+          | status updates   |
+          +------------------+
+```
+
+Draw the two tables first — that is the data model. Then draw the Scheduler scanning and enqueueing. Then the worker pool. Then the success/failure split at the bottom. Save the Status Query Path and GSI for if the interviewer asks about read patterns.
+
+
 ---
 
 <details open>

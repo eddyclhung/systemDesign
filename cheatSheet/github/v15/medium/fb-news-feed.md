@@ -13,6 +13,73 @@ A new post writes to Cassandra then publishes to Kafka. An async fan-out worker 
 
 > Celeb >1M followers: skip push → pull at read time  |  Feed read = ZREVRANGE (O(1))
 
+## Architecture diagram
+
+```
+Clients
+  |
+  v
+API Gateway / Load Balancer
+  |
+  +-------------------+-------------------+-------------------+
+  |                   |                   |
+  v                   v                   v
+Post Service      Follow Service      Feed Service
+  |                   |                   |
+  |                   |                   |
+  v                   v                   v
+Post Table         Follow Table        Precomputed Feed Table
+DynamoDB           DynamoDB            DynamoDB
+PK postId          PK userFollowing    PK userId
+                   SK userFollowed     value recent postIds
+                   GSI userFollowed
+
+Post Table GSI
+PK creatorId
+SK createdAt
+
+Write path for new post
+-----------------------
+User -> Post Service -> Post Table
+                     -> Queue message with postId, creatorId
+
+                         v
+                    SQS / Queue
+                         |
+                         v
+                    Feed Workers
+                         |
+          +--------------+--------------+
+          |                             |
+          v                             v
+   Follow Table GSI              Precomputed Feed Table
+   get followers                 prepend new postId
+
+Read path for feed
+------------------
+User -> Feed Service
+     -> read precomputed feed for user
+     -> for non-precomputed celebrity accounts, query recent posts by creatorId from Post Table GSI
+     -> fetch post objects by postId
+     -> merge + sort by createdAt
+     -> return page with next cursor
+
+Hot post read protection
+------------------------
+Feed Service
+  |
+  v
+Replicated Redis Cache
+  |
+  v
+Post Table
+```
+
+If you want the best interview version, I would say this out loud as one sentence. Most users read from a precomputed feed, most posts are fanned out asynchronously on write, and celebrity accounts fall back to partial fan-out on read.
+
+If you want, I can also give you a smaller interview-sized sketch that fits in 10 to 12 lines.
+
+
 ---
 
 <details open>

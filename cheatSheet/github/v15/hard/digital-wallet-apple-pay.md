@@ -11,6 +11,17 @@ Card numbers are tokenized in a HSM-backed vault — merchants never see PAN. Pa
 
 > PAN never touches merchant  |  Device-bound tokens  |  Ledger is immutable event log
 
+## Architecture diagram
+
+```
+App -> Wallet API -> Token Vault (HSM)
+              -> Auth svc -> Payment network
+              -> Ledger (event log)
+```
+
+Vault and ledger are isolated trust boundaries.
+
+
 ---
 
 <details open>

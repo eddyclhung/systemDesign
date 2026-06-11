@@ -11,6 +11,86 @@ Phase 1: SETNX seatId in Redis with a 10-minute TTL — atomic soft lock, first 
 
 > SETNX is atomic — first caller wins  |  TTL = auto-release on abandoned checkout  |  Virtual queue for onsale spikes
 
+## Architecture diagram
+
+```
++-------------------+
+                         |      Clients      |
+                         |  Web / Mobile     |
+                         +---------+---------+
+                                   |
+                              HTTPS|
+                                   v
+                         +-------------------+
+                         |   Load Balancer   |
+                         +---------+---------+
+                                   |
+                                   v
+                         +-------------------+
+                         |    API Gateway    |
+                         | auth, rate limit  |
+                         +----+----+----+----+
+                              |    |    |
+              ----------------+    |    +----------------
+              |                   |                     |
+              v                   v                     v
+     +----------------+   +----------------+   +----------------+
+     | Event Service  |   | Search Service |   | Booking Service|
+     +--------+-------+   +--------+-------+   +---+--------+---+
+              |                    |               |        |
+              |                    |               |        |
+              v                    v               v        v
+     +----------------+   +----------------+   +------+  +----------------+
+     |  Cache Redis   |   | Elasticsearch  |   |Redis |  | Payment        |
+     | event details  |   | full text      |   |Locks |  | Processor      |
+     +--------+-------+   +--------+-------+   | TTL  |  | Stripe         |
+              |                    ^           +--+---+  +--------+-------+
+              |                    |              |               |
+              v                    |              |               |
+     +---------------------------------------------------------------+
+     |                         PostgreSQL                            |
+     | Events | Venues | Performers | Tickets | Bookings | Users     |
+     +---------------------------------------------------------------+
+                              ^                    ^
+                              |                    |
+                              +---------+----------+
+                                        |
+                                  CDC / sync
+                                        |
+                                        v
+                               +------------------+
+                               | Search indexer   |
+                               | or CDC pipeline  |
+                               +------------------+
+
+
+Real-time updates for seat map
+
+     +----------------+
+     | Realtime/SSE   |
+     | update service |
+     +-------+--------+
+             |
+             v
+     push seat status changes to clients
+
+
+Optional protection for huge onsales
+
+     +----------------------+
+     | Virtual waiting queue|
+     | Redis sorted set     |
+     +----------+-----------+
+                |
+                v
+       admits limited users to booking flow
+```
+
+The main idea is simple. Reads go through Event Service and Search Service, and writes with contention go through Booking Service. You cache event data for heavy reads, use Elasticsearch for fast search, use Redis TTL locks for temporary seat holds, and use PostgreSQL as the source of truth so you never double book.
+
+If you want, I can also show you a smaller interview-ready version that is easier to draw in 2 minutes.
+
+
 ---
 
 <details open>

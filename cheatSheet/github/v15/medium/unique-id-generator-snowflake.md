@@ -11,6 +11,19 @@ Each ID is 64 bits: timestamp (ms) + worker_id (from ZooKeeper lease) + per-ms s
 
 > 64-bit: 41b timestamp + 10b worker + 12b sequence  |  NTP required  |  worker_id from ZK lease
 
+## Architecture diagram
+
+```
+[Service] --> [ID Generator lib]
+                      |
+            worker_id from ZK lease
+            seq++ per millisecond
+            pack 64-bit ID
+```
+
+Draw three fields in the 64-bit ID. ZK assigns worker_id. Generation is local after lease.
+
+
 ---
 
 <details open>

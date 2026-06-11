@@ -11,6 +11,92 @@ Swipe deck is pre-computed via GEORADIUS + preference filters, cached per user. 
 
 > Deck pre-computed per user  |  GEORADIUS + filter prefs + cache  |  Match = atomic SETNX mutual check
 
+## Architecture diagram
+
+```
++-------------------+
+                         |   Mobile Client   |
+                         | profile, feed,    |
+                         | swipe, match UI   |
+                         +---------+---------+
+                                   |
+                            HTTPS  |
+                                   v
+                         +-------------------+
+                         |    API Gateway    |
+                         | auth, routing     |
+                         +----+---------+----+
+                              |         |
+                 +------------+         +-----------------+
+                 |                                        |
+                 v                                        v
+      +---------------------+                  +----------------------+
+      |   Profile Service   |                  |    Swipe Service     |
+      | prefs, profile data |                  | record swipe, detect |
+      +----------+----------+                  | match, emit events   |
+                 |                             +----+-----------+-----+
+                 |                                  |           |
+                 v                                  |           |
+      +---------------------+                       |           v
+      |   User DB           |                       |   +------------------+
+      | profiles, prefs     |                       |   | Notification Svc |
+      +---------------------+                       |   | APNS or FCM      |
+                                                    |   +--------+---------+
+                                                    |            |
+                                                    |            v
+                                                    |    +---------------+
+                                                    |    | Other User     |
+                                                    |    | push device    |
+                                                    |    +---------------+
+                                                    |
+                                                    v
+                                         +----------------------+
+                                         | Redis Match Store    |
+                                         | atomic pair check    |
+                                         | low latency match    |
+                                         +----------+-----------+
+                                                    |
+                                                    v
+                                         +----------------------+
+                                         | Swipe DB             |
+                                         | Cassandra style      |
+                                         | durable swipe log    |
+                                         +----------------------+
+
+
+                 Feed generation path
+
+      +---------------------+
+      |   Feed Service      |
+      | build candidate set |
+      +-----+---------+-----+
+            |         |
+            |         v
+            |   +----------------------+
+            |   | Feed Cache           |
+            |   | precomputed stacks   |
+            |   +----------------------+
+            |
+            v
+   +-------------------------+
+   | Search Index            |
+   | geo plus preference     |
+   | filtering               |
+   +-----------+-------------+
+               |
+               v
+      +---------------------+
+      | User DB / CDC sync   |
+      | profile updates flow |
+      | into search index    |
+      +---------------------+
+```
+
+The mental model is two main paths. One path serves profiles fast through feed cache plus a search index. The other path handles swipes safely through Redis for atomic match detection and Cassandra for durable swipe history.
+
+If you want, I can also give you a simpler interview version with only 6 boxes, or a step by step swipe flow sketch.
+
+
 ---
 
 <details open>

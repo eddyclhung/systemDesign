@@ -11,6 +11,17 @@ Inbound SMTP mail is parsed, scanned for spam, and written to a user shard (Cass
 
 > Shard by user_id  |  Attachments in blob store  |  Search index async from mail log
 
+## Architecture diagram
+
+```
+SMTP -> Ingest -> Spam -> Cassandra (user shard) -> API -> Client
+                    -> Blob (attachments)
+                    -> Kafka -> ES indexer
+```
+
+User shard is source of truth; search is derived.
+
+
 ---
 
 <details open>

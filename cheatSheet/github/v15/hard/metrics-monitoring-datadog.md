@@ -11,6 +11,118 @@ Host agents batch metrics and push every 10s to Kafka. Three consumers: TSDB wri
 
 > Cardinality explosion: each unique metric+labels = new series → control labels  |  Dashboards can be stale; alerts must not be lost
 
+## Architecture diagram
+
+```
++----------------------+
+                         |   Users / Engineers  |
+                         +----------+-----------+
+                                    |
+                                    v
+                         +----------------------+
+                         | Dashboard / Query UI |
+                         +----------+-----------+
+                                    |
+                                    v
+                         +----------------------+
+                         |    Query Service     |
+                         | parse DSL, auth,     |
+                         | cache, query split   |
+                         +----+------------+----+
+                              |            |
+                    cache hit |            | query raw or rollups
+                              v            v
+                        +---------+   +-------------------+
+                        |  Redis  |   | Time Series DB    |
+                        | Cache   |   | raw + rollups     |
+                        +---------+   | sharded + replica |
+                                      +---------+---------+
+                                                ^
+                                                |
+                                      +---------+---------+
+                                      | Storage Consumers |
+                                      | batch writes      |
+                                      +---------+---------+
+                                                ^
+                                                |
++-------------+      +-------------------+      |
+| Servers and | ---> | Local Agent /     | ---> |
+| Services    |      | Collector         |      |
+| emit metrics|      | buffer + batch    |      |
++-------------+      +---------+---------+      |
+                                 |              |
+                                 v              |
+                      +-------------------------+
+                      | Ingestion Service       |
+                      | validate, normalize,    |
+                      | auth, rate limit        |
+                      +-----+-------------+-----+
+                            |             |
+                            |             v
+                            |   +----------------------+
+                            |   | Cardinality Guard    |
+                            |   | policy check         |
+                            |   | label allowlist      |
+                            |   +----+------------+----+
+                            |        |            |
+                            |        |            v
+                            |        |      +-----------+
+                            |        |      | Postgres  |
+                            |        |      | Policies  |
+                            |        |      | Alert cfg |
+                            |        |      +-----------+
+                            |        v
+                            |   +-----------+
+                            |   |   Redis   |
+                            |   | series set|
+                            |   | counters   |
+                            |   +-----------+
+                            |
+                            v
+                     +----------------------+
+                     |        Kafka         |
+                     | durable buffer       |
+                     | partitioned stream   |
+                     +----+-------------+---+
+                          |             |
+                          |             |
+                          |             +----------------------+
+                          |                                    |
+                          v                                    v
+               +----------------------+             +----------------------+
+               | Storage Consumers    |             | Alert Evaluator      |
+               | write to TSDB        |             | poll rules, query    |
+               +----------------------+             | TSDB every 30 to 60s |
+                                                    +----------+-----------+
+                                                               |
+                                                               v
+                                                    +----------------------+
+                                                    | Alert Events         |
+                                                    | firing or resolved   |
+                                                    +----------+-----------+
+                                                               |
+                                                               v
+                                                    +----------------------+
+                                                    | Notification Service |
+                                                    | dedupe, grouping,    |
+                                                    | silence, escalation  |
+                                                    +----+----------+------+
+                                                         |          |
+                                                         |          |
+                                                         v          v
+                                                   +---------+   +----------+
+                                                   | Slack   |   | PagerDuty|
+                                                   +---------+   +----------+
+                                                         |
+                                                         v
+                                                      +------+
+                                                      |Email |
+                                                      +------+
+```
+
+The main story is ingest, buffer, store, query, then alert. If you are drawing this in an interview, I would keep the first pass even simpler with agents, ingestion, Kafka, time-series DB, query service, alert evaluator, and notification service. Then add cardinality control, cache, and rollups only if the interviewer pushes on scale or latency.
+
+
 ---
 
 <details open>

@@ -13,6 +13,90 @@ A consistent hash ring routes each key to its responsible node. Adding or removi
 
 > Consistent hash: add/remove node remaps K/n keys only (vs modulo = all keys)  |  Virtual nodes = even load
 
+## Architecture diagram
+
+```
++-------------------+
+                           |      Clients      |
+                           | app servers, APIs |
+                           +---------+---------+
+                                     |
+                    get set delete   |
+                                     v
+                  +---------------------------------+
+                  | Cache Client Library / SDK      |
+                  | - consistent hash routing       |
+                  | - connection pooling            |
+                  | - write batching for hot writes |
+                  | - hot key suffix logic          |
+                  +-----------+---------------------+
+                              |
+              routes directly to owning shard node
+                              |
+      -------------------------------------------------------------
+      |                 Distributed Cache Cluster                 |
+      |                                                           |
+      |   Shard A                Shard B                Shard C   |
+      |                                                           |
+      | +-----------+         +-----------+         +-----------+ |
+      | | Primary A |-------> | Replica A |         | Replica A2| |
+      | | async repl|         | read copy |         | read copy | |
+      | +-----+-----+         +-----------+         +-----------+ |
+      |       |                                                   |
+      |       | in memory per node                                |
+      |       v                                                   |
+      |   +-------------------------------+                       |
+      |   | Hash map key -> node pointer  |                       |
+      |   | Doubly linked list for LRU    |                       |
+      |   | TTL expiry on entries         |                       |
+      |   | Background cleanup process    |                       |
+      |   +-------------------------------+                       |
+      |                                                           |
+      | +-----------+         +-----------+         +-----------+ |
+      | | Primary B |-------> | Replica B |-------> | Replica B2| |
+      | +-----+-----+         +-----------+         +-----------+ |
+      |       |                                                   |
+      |       v                                                   |
+      |   +-------------------------------+                       |
+      |   | Hash map + LRU list + TTL     |                       |
+      |   +-------------------------------+                       |
+      |                                                           |
+      | +-----------+         +-----------+         +-----------+ |
+      | | Primary C |-------> | Replica C |-------> | Replica C2| |
+      | +-----+-----+         +-----------+         +-----------+ |
+      |       |                                                   |
+      |       v                                                   |
+      |   +-------------------------------+                       |
+      |   | Hash map + LRU list + TTL     |                       |
+      |   +-------------------------------+                       |
+      -------------------------------------------------------------
+
+Hot read handling
+
+   hot:key
+      |
+      +--> hot:key#1 on Shard A
+      +--> hot:key#2 on Shard B
+      +--> hot:key#3 on Shard C
+
+Reads pick one copy to spread load.
+Writes update all copies asynchronously.
+
+Hot write handling
+
+   counter:item42
+      |
+      +--> counter:item42:1 on Shard A
+      +--> counter:item42:2 on Shard B
+      +--> counter:item42:3 on Shard C
+
+Writes are spread across suffixes.
+Reads aggregate across shards.
+```
+
+The main mental model is this. Each cache node is just a fast in memory LRU cache, and the distributed part comes from sharding keys across many nodes with replication for availability. If you want, I can also give you a cleaner interview sized version that fits on one whiteboard.
+
+
 ---
 
 <details open>

@@ -13,6 +13,17 @@ Map rendering is CDN-served tiles (z/x/y) stored in S3 — immutable, cacheable 
 
 > Tiles immutable → CDN forever  |  Routing on preprocessed graph  |  Geospatial index for POI search
 
+## Architecture diagram
+
+```
+Client -> CDN -> S3 tiles (base map)
+Client -> API -> ES (POI search)
+Client -> Routing svc -> Graph shards (CH / hub labels)
+```
+
+Separate read paths for tiles, search, and routing.
+
+
 ---
 
 <details open>

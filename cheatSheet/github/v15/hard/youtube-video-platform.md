@@ -13,6 +13,192 @@ Upload via TUS resumable protocol. Raw video lands in S3, triggering parallel tr
 
 > ABR: client picks quality tier by bandwidth  |  Transcode = parallel per resolution  |  CDN = #1 cost driver
 
+## Architecture diagram
+
+```
++-------------------+
+                         |       Users       |
+                         | uploader, viewer  |
+                         +---------+---------+
+                                   |
+                         HTTPS     |
+                                   v
+                         +-------------------+
+                         |   Load Balancer   |
+                         +---------+---------+
+                                   |
+                                   v
+                         +-------------------+
+                         |   Video Service   |
+                         | stateless API     |
+                         +----+---------+----+
+                              |         |
+                              |         |
+                              |         +----------------------+
+                              |                                |
+                              v                                v
+                 +------------------------+         +---------------------+
+                 |   Metadata Cache       |         |   Video Metadata DB |
+                 | distributed cache      |         | Cassandra           |
+                 +------------------------+         +---------------------+
+
+UPLOAD FLOW
+===========
+
+  1. Client asks for upload session and presigned URL
+
+     User ---> Video Service ---> Metadata DB
+                    |
+                    +--> returns videoId, multipart upload info,
+                         presigned URLs
+
+  2. Client uploads video directly to blob storage
+
+     User ---------------------------------------------> S3 Blob Storage
+            multipart upload of raw video chunks
+
+  3. Client reports chunk progress
+
+     User ---> Video Service ---> Metadata DB
+            chunk uploaded status, ETag info
+
+  4. Upload completion triggers processing
+
+     S3 ObjectCreated event ---> Processing Orchestrator
+
+
+PROCESSING PIPELINE
+===================
+
+                    +-------------------------+
+                    | Processing Orchestrator |
+                    | DAG workflow manager    |
+                    +-----------+-------------+
+                                |
+          ---------------------------------------------------
+          |                         |                        |
+          v                         v                        v
+ +----------------+        +----------------+      +----------------+
+ | Segment Worker |        | Audio Worker   |      | Transcript     |
+ | split raw file |        | audio process  |      | Worker         |
+ +-------+--------+        +--------+-------+      +--------+-------+
+         |                          |                       |
+         v                          v                       v
+ +----------------+        +----------------+      +----------------+
+ | Transcode      |        | audio outputs  |      | transcript out |
+ | Workers        |        | in S3          |      | in S3          |
+ | many in parallel|       +----------------+      +----------------+
+ +-------+--------+
+         |
+         v
+ +------------------------+
+ | Manifest Generator     |
+ | primary + media files  |
+ +-----------+------------+
+             |
+             v
+ +------------------------+
+ | S3 processed assets    |
+ | segments, manifests    |
+ +-----------+------------+
+             |
+             v
+ +------------------------+
+ | Metadata DB update     |
+ | manifest URL, status   |
+ | upload complete        |
+ +------------------------+
+
+
+PLAYBACK FLOW
+=============
+
+     User ---> Video Service ---> Cache ---> Metadata DB
+                      |
+                      +--> returns manifest URL and metadata
+
+     User ---> CDN ---> S3 processed assets
+              |         manifests and video segments
+              |
+              +--> edge serves cached content when possible
+
+     Client playback logic
+       - fetch manifest
+       - pick bitrate based on network
+       - download first segment
+       - keep downloading next segments
+       - switch quality up or down as bandwidth changes
+
+
+FULL SYSTEM VIEW
+================
+
+                   +-------------------+
+                   |       Users       |
+                   +---------+---------+
+                             |
+                             v
+                   +-------------------+
+                   |   Load Balancer   |
+                   +---------+---------+
+                             |
+                             v
+                   +-------------------+
+                   |   Video Service   |
+                   +---+-----------+---+
+                       |           |
+                       v           v
+              +-------------+   +------------------+
+              | Cache       |   | Metadata DB      |
+              | popular md  |   | Cassandra        |
+              +-------------+   +------------------+
+
+ upload session / metadata |                 ^
+                            |                 |
+                            v                 |
+                      +-------------------------------+
+                      | S3 Blob Storage               |
+                      | raw uploads                   |
+                      | processed segments/manifests  |
+                      +---------------+---------------+
+                                      |
+                         object event |
+                                      v
+                      +-------------------------------+
+                      | Processing Orchestrator       |
+                      | workflow / DAG manager        |
+                      +---------------+---------------+
+                                      |
+                           parallel worker fleet
+                                      |
+             -------------------------------------------------
+             |                     |                         |
+             v                     v                         v
+      +-------------+      +---------------+         +---------------+
+      | Split       |      | Transcode     |         | Other media   |
+      | workers     |      | workers       |         | workers       |
+      +-------------+      +---------------+         +---------------+
+                                      |
+                                      v
+                             +----------------+
+                             | Manifest Gen   |
+                             +--------+-------+
+                                      |
+                                      v
+                                +-----------+
+                                |    CDN    |
+                                | edge cache|
+                                +-----+-----+
+                                      |
+                                      v
+                                    Users
+```
+
+The mental model is two big paths. Upload goes client to S3, then processing pipeline, then metadata update. Watch goes client to metadata, then manifest, then CDN segment fetches.
+
+If you want, I can also give you a smaller interview friendly version that fits in 60 seconds on a whiteboard.
+
+
 ---
 
 <details open>

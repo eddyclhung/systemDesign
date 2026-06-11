@@ -11,6 +11,93 @@ The user sends a location and item list. The Geo Service finds the nearest wareh
 
 > Browse: Redis cache (eventual OK)  |  Order: PG tx with row-level lock — no oversell
 
+## Architecture diagram
+
+```
++------------------+
+                 |      Client      |
+                 |  Web or Mobile   |
+                 +---------+--------+
+                           |
+          Availability API |              Order API
+                           |
+          +----------------+----------------+
+          |                                 |
+          v                                 v
++-----------------------+         +-----------------------+
+|  Availability Service |         |    Orders Service     |
+|  read path            |         |    write path         |
++----------+------------+         +-----------+-----------+
+           |                                    |
+           | asks for serviceable DCs           | asks for serviceable DCs
+           v                                    v
+                +---------------------------+
+                |      Nearby Service       |
+                | find DCs within 1 hour    |
+                +-------------+-------------+
+                              |
+                              | candidate DCs
+                              v
+                +---------------------------+
+                | Travel Time Service       |
+                | external ETA estimation   |
+                +---------------------------+
+
+
+Availability read flow
+----------------------
+           |
+           v
++-----------------------+
+| Redis Cache           |
+| availability results  |
+| short TTL             |
++----------+------------+
+           |
+     cache miss
+           v
++-----------------------+
+| Postgres Read Replica |
+| inventory reads       |
++----------+------------+
+           |
+           v
++-----------------------+
+| Partitioned by Region |
+| inventory + items     |
++-----------------------+
+
+
+Order write flow
+----------------
+           |
+           v
++-----------------------+
+| Postgres Leader       |
+| serializable txn      |
++----------+------------+
+           |
+           v
++-----------------------+
+| Tables                |
+| Inventory             |
+| Items                 |
+| Orders                |
+| OrderItems            |
++-----------------------+
+           |
+           v
++-----------------------+
+| Cache Invalidation    |
+| expire affected keys  |
++-----------------------+
+```
+
+The mental model is simple. Availability is a fast read path that can tolerate slight staleness, so it uses Nearby Service, cache, and read replicas. Orders are the strict write path, so they go to the Postgres leader in one transaction so you do not double sell inventory.
+
+If you were drawing this in an interview, I would show just these boxes first. Then I would say reads go through cache and replicas, while writes go through the leader with an atomic transaction.
+
+
 ---
 
 <details open>

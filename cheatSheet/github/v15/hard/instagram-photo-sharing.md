@@ -11,6 +11,106 @@ Upload: client gets a pre-signed S3 URL and uploads directly. Async transcode ge
 
 > Celeb >1M followers: skip push → pull at read time  |  Pre-signed URL: client uploads direct to S3
 
+## Architecture diagram
+
+```
++-------------------+
+                             |   Mobile / Web    |
+                             |      Clients      |
+                             +---------+---------+
+                                       |
+                                       v
+                             +-------------------+
+                             |    API Gateway    |
+                             | auth rate limit   |
+                             +----+----+----+----+
+                                  |    |    |
+                 POST /posts -----+    |    +----- GET /feed
+                 POST /follows ---------+
+                                       
+        +-------------------+    +-------------------+    +-------------------+
+        |   Post Service    |    |  Follow Service   |    |   Feed Service    |
+        | create post meta  |    | follow unfollow   |    | read feed         |
+        +----+---------+----+    +---------+---------+    +----+---------+----+
+             |         |                     |                   |         |
+             |         |                     |                   |         |
+             |         v                     v                   |         v
+             |   +-----------+         +-----------+             |   +------------+
+             |   |  Posts DB |         | FollowsDB |             |   |   Redis    |
+             |   | DynamoDB  |         | DynamoDB  |             |   | feed zset  |
+             |   +-----------+         +-----------+             |   | post cache |
+             |                                                   |   +-----+------+
+             |                                                   |         |
+             |                                                   |         v
+             |                                                   |   +------------+
+             |                                                   +-->|  Posts DB  |
+             |                                                       | BatchGet   |
+             |                                                       +------------+
+             |
+             |  presigned upload URL
+             v
+      +-------------------+        multipart upload        +-------------------+
+      |   Blob Storage    |<------------------------------>|      Client       |
+      |       S3          |                                +-------------------+
+      +---------+---------+
+                |
+                v
+      +-------------------+
+      |       CDN         |
+      | edge cache media  |
+      +---------+---------+
+                |
+                v
+      +-------------------+
+      |   Media Delivery  |
+      | photos and videos |
+      +-------------------+
+
+
+                 Async fanout path after new post
+
+        Post Service
+             |
+             v
+      +-------------------+
+      |   Queue / Topic   |
+      | new post events   |
+      +---------+---------+
+                |
+                v
+      +-------------------+
+      | Feed Fanout Worker|
+      | async background  |
+      +----+---------+----+
+           |         |
+           |         v
+           |   +-----------+
+           |   | FollowsDB |
+           |   | followers |
+           |   +-----------+
+           |
+           v
+      +-------------------+
+      |       Redis       |
+      | update feed:user  |
+      +-------------------+
+
+
+                 Celebrity hybrid read path
+
+      Feed Service
+           |
+           +----> Redis precomputed feed for normal accounts
+           |
+           +----> Posts DB for recent celebrity posts
+           |
+           v
+      merge by timestamp and return page
+```
+
+The mental model is two big flows. Write flow stores post metadata and media, then asynchronously updates follower feeds. Read flow pulls mostly from Redis, then hydrates post metadata from the posts store, with a hybrid read for celebrity accounts.
+
+
 ---
 
 <details open>

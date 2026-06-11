@@ -104,7 +104,9 @@ Staff+ prep built around a repeatable delivery framework.
 
 **Database chooser** — comparison table (open by default), decision tree, per-DB deep dives, anti-patterns.
 
-**Quick reference** — CAP, protocols, quick-fire, consistency patterns, **cloud services + AWS commands** (full tables in v10).
+**Quick reference** — CAP, protocols, consistency patterns, **cloud services + AWS commands** (full tables in v10).
+
+**Interview quick-fire** — [`cheatSheet/interview-quick-fire.md`](cheatSheet/interview-quick-fire.md) — 60+ problem → staff-level answers (standalone Markdown; top 10 also inline in cheatsheet).
 
 **40 systems** by difficulty:
 

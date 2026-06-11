@@ -11,6 +11,96 @@ Client sends a UUID idempotency key. API checks if the key exists in DB first. I
 
 > Idempotency key = retry-safe (no double charge)  |  Outbox in same TX = no lost webhooks  |  Double-entry: debit buyer, credit merchant
 
+## Architecture diagram
+
+```
++--------------------+
+                         |   Merchant Backend |
+                         |  uses API keys     |
+                         +---------+----------+
+                                   |
+                                   | HTTPS
+                                   v
++-------------+            +-------+--------+
+| Customer    |            |   API Gateway   |
+| Browser     |            | auth, routing,  |
+| checkout UI |            | rate limiting   |
++------+------+            +---+---------+---+
+       |                       |         |
+       | card entry via        |         |
+       | hosted iframe / SDK   |         |
+       v                       |         |
++------+-----------------------+         |
+| Secure Payment SDK / iFrame  |         |
+| card data goes to processor  |         |
++--------------+---------------+         |
+               |                         |
+               | encrypted card data     |
+               |                         |
+               v                         v
+      +--------+---------+      +--------+---------+
+      | Transaction      |      | PaymentIntent    |
+      | Service          |      | Service          |
+      | creates charge   |      | create/read      |
+      | records          |      | payment intent   |
+      +----+--------+----+      +----+--------+----+
+           |        |                |        |
+           |        +----------------+        |
+           |             read/write           |
+           v                                  v
+      +---------------------------------------------+
+      |           Operational Database              |
+      | merchants, payment_intents, transactions,   |
+      | attempts, statuses                          |
+      +-------------------+-------------------------+
+                          |
+                          | CDC from DB log
+                          v
+                 +--------+---------+
+                 |   Kafka / Event  |
+                 |   Stream         |
+                 | immutable events |
+                 +---+----+----+----+
+                     |    |    |
+                     |    |    |
+                     |    |    +------------------+
+                     |    |                       |
+                     |    v                       v
+                     |  +---------+        +-------------+
+                     |  | Audit   |        | Webhook     |
+                     |  | Service |        | Service     |
+                     |  | history |        | notify      |
+                     |  +----+----+        | merchants   |
+                     |       |             +------+------+ 
+                     |       |                    |
+                     |       v                    | HTTPS POST
+                     |  +---------+               v
+                     |  | Cold    |        +-------------+
+                     |  | Storage |        | Merchant    |
+                     |  | S3 etc  |        | Webhook URL |
+                     |  +---------+        +-------------+
+                     |
+                     v
+             +-------+--------+
+             | Reconciliation |
+             | Service        |
+             | resolves       |
+             | timeouts       |
+             +-------+--------+
+                     |
+                     | query status / batch files
+                     v
+          .---------------------------------------.
+          | External Payment Networks and Banks   |
+          | Visa, Mastercard, issuing banks       |
+          '---------------------------------------'
+```
+
+The mental model is simple. PaymentIntent Service manages the customer payment lifecycle, Transaction Service talks to the outside payment world, and the database plus CDC plus Kafka gives you a durable history so you do not lose money movement events.
+
+If you are drawing this in an interview, you can start with just five boxes. Merchant, API Gateway, PaymentIntent Service, Transaction Service, Database. Then add CDC, Kafka, Reconciliation, and Webhooks only if the interviewer pushes on durability or async safety.
+
+
 ---
 
 <details open>

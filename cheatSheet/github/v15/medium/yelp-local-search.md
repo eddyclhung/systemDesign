@@ -13,6 +13,75 @@ Search combines geo_distance filter and full-text match in a single Elasticsearc
 
 > ES geo_distance + text in one query  |  PostgreSQL = source of truth  |  Photos: S3 + CDN
 
+## Architecture diagram
+
+```
++-------------------+
+                         |   Web / Mobile    |
+                         |      Client       |
+                         +---------+---------+
+                                   |
+                                   v
+                         +-------------------+
+                         |    API Gateway    |
+                         +----+---------+----+
+                              |         |
+                 GET search / view      | POST review
+                              |         |
+                              v         v
+                  +----------------+   +----------------+
+                  | Business       |   | Review         |
+                  | Service        |   | Service        |
+                  +---+--------+---+   +---+--------+---+
+                      |        |           |        |
+                      |        |           |        |
+                      |        |           |        +------------------+
+                      |        |           |                           |
+                      |        |           v                           v
+                      |        |   +------------------+       +------------------+
+                      |        |   | Reviews Table    |       | Businesses Table |
+                      |        |   | unique(userId,   |       | avg_rating       |
+                      |        |   | businessId)      |       | num_reviews      |
+                      |        |   +---------+--------+       +---------+--------+
+                      |        |             |                          ^
+                      |        +-------------+--------------------------|
+                      |                     sync rating update          |
+                      |               optimistic locking on write       |
+                      |                                                 |
+                      v                                                 |
+           +-------------------------+                                  |
+           | Read Replica / Cache    |----------------------------------+
+           | for hot business reads  |
+           +-----------+-------------+
+                       |
+                       v
+           +-------------------------+
+           | Search Store            |
+           | Elasticsearch or        |
+           | Postgres + PostGIS      |
+           | + full text indexes     |
+           +-----------+-------------+
+                       ^
+                       |
+              CDC / async indexing
+                       |
+           +-----------+-------------+
+           | Primary DB              |
+           | businesses + reviews    |
+           +-------------------------+
+
+Optional for named locations
+
+           +-------------------------+
+           | Locations Table         |
+           | name -> polygon         |
+           | city / neighborhood     |
+           +-------------------------+
+```
+
+The main story you should tell is simple. Search and business reads go through the Business Service, reviews go through the Review Service, the primary database is the source of truth, and search is powered either by Elasticsearch with CDC sync or by Postgres extensions if you want the simpler version. For interviews, I would present the simple version first, then add the search store and location polygons only if the interviewer pushes on search quality or scale.
+
+
 ---
 
 <details open>

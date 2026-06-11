@@ -11,6 +11,18 @@ Match ends → ZINCRBY updates player score in Redis sorted set. Top-100 = ZREVR
 
 > ZINCRBY = atomic score update  |  ZREVRANK = O(log N) rank  |  Cassandra rebuilds Redis on failure
 
+## Architecture diagram
+
+```
+Match -> Score Service -> ZINCRBY leaderboard
+                |-> Cassandra (audit)
+API -> ZREVRANGE top-100 (cached)
+API -> ZREVRANK player_id
+```
+
+One diagram: write path ZINCRBY, read paths ZREVRANGE and ZREVRANK.
+
+
 ---
 
 <details open>

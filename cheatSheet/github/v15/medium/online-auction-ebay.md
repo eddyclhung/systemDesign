@@ -11,6 +11,80 @@ Bids serialized via Redis Lua compare-and-set: atomically check if new bid excee
 
 > Lua CAS: only update if newBid > currentBid (atomic)  |  Redis for speed, PG for durability
 
+## Architecture diagram
+
+```
++-------------------+
+                         |      Clients       |
+                         | web mobile browser |
+                         +---------+---------+
+                                   |
+                          GET POST /auctions
+                          POST /bids
+                          SSE bid updates
+                                   |
+                         +---------v---------+
+                         |    API Gateway     |
+                         | auth routing rate  |
+                         +----+----------+----+
+                              |          |
+                    read path |          | write path
+                              |          |
+               +--------------v--+    +--v----------------+
+               | Auction Service |    | Bid Ingest API    |
+               | auction details |    | accept bid fast   |
+               +-------+---------+    +---------+---------+
+                       |                          |
+                       |                          |
+              +--------v---------+                |
+              | Auctions DB      |<---------------+
+              | auctions items   |     optional direct read
+              | max_bid on row   |
+              +--------+---------+                |
+                       ^                          |
+                       |                          v
+                       |                 +--------+---------+
+                       |                 | Kafka            |
+                       |                 | topic partitioned|
+                       |                 | by auctionId     |
+                       |                 +--------+---------+
+                       |                          |
+                       |                          v
+                       |                 +--------+---------+
+                       |                 | Bidding Service  |
+                       |                 | consumer workers |
+                       |                 | validate bid     |
+                       |                 | OCC or row lock  |
+                       |                 +---+----------+---+
+                       |                     |          |
+                       |                     |          |
+                       |        write bid history       |
+                       |                     |          |
+                       |                     v          v
+                       |              +------+--+   +---+----------------+
+                       |              | Bids DB |   | Pub Sub / Fanout   |
+                       |              | history |   | broadcast updates  |
+                       |              +---------+   +---+----------------+
+                       |                                  |
+                       |                                  |
+                +------v----------------------------------v------+
+                | SSE / Realtime Gateway instances               |
+                | keep client connections by auctionId           |
+                | push latest accepted max bid to watchers       |
+                +----------------------+-------------------------+
+                                       |
+                                       v
+                                  +----+----+
+                                  | Clients |
+                                  | live UI |
+                                  +---------+
+```
+
+The key idea is this. Reads and writes are split. Auction Service handles viewing and creating auctions. Bids go through a durable queue first so you do not lose them under spikes. Then Bidding Service processes bids in order per auction, updates the auction row max bid safely, stores bid history, and publishes the new highest bid to the realtime layer.
+
+If you need to simplify this in an interview, keep the core path to four boxes. Client to API Gateway to Kafka to Bidding Service to Database, plus SSE for live updates. That shows you understand the two hard parts, which are correct bid acceptance and real-time fanout.
+
+
 ---
 
 <details open>

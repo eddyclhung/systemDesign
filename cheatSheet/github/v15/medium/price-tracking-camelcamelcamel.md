@@ -11,6 +11,105 @@ A distributed crawler fleet scrapes prices. A consistent hash scheduler assigns 
 
 > Consistent hash = stable product→crawler assignment  |  TSDB >> SQL for time-series  |  Dedup: don't re-alert at same price
 
+## Architecture diagram
+
+```
++----------------------+
+                         |   Website / Chrome   |
+                         |      Extension       |
+                         +----------+-----------+
+                                    |
+                                    v
+                           +------------------+
+                           |    API Gateway   |
+                           | auth rate limit  |
+                           +---+----------+---+
+                               |          |
+                GET price hist |          | POST subscription
+                               v          v
+                    +----------------+   +-------------------+
+                    | Price History  |   | Subscription      |
+                    | Service        |   | Service           |
+                    +-------+--------+   +---------+---------+
+                            |                      |
+                            v                      v
+                 +---------------------+   +---------------------+
+                 |  Price DB           |   | Primary DB          |
+                 | time series prices  |   | users products subs |
+                 +----------+----------+   +----------+----------+
+                            |                         |
+                            | new validated price     |
+                            v                         |
+                      +-------------------+           |
+                      | Kafka / Event Bus |<----------+
+                      | price change evt  |
+                      +---------+---------+
+                                |
+                                v
+                    +--------------------------+
+                    | Notification Service     |
+                    | find matching subs       |
+                    +------------+-------------+
+                                 |
+                                 v
+                       +----------------------+
+                       | Email Provider       |
+                       +----------------------+
+
+
+   PRICE COLLECTION SIDE
+
+   +----------------------+        +----------------------+
+   | Chrome Extension     |        | Web Crawler Service  |
+   | product page views   |        | selective crawling   |
+   +----------+-----------+        +----------+-----------+
+              |                                 |
+              v                                 v
+        +-----------------------------------------------+
+        | Price Ingestion / Validation Service          |
+        | trust but verify suspicious updates           |
+        +-------------------+---------------------------+
+                            |
+                valid price | write
+                            v
+                     +--------------+
+                     |   Price DB    |
+                     +------+--------+
+                            |
+                            | publish price changed
+                            v
+                     +--------------+
+                     | Kafka / Bus   |
+                     +--------------+
+
+
+   OPTIONAL FAST VERIFICATION LOOP
+
+   suspicious extension update
+              |
+              v
+   +------------------------------+
+   | Verification Queue           |
+   +--------------+---------------+
+                  |
+                  v
+   +------------------------------+
+   | Priority Crawler             |
+   | checks Amazon quickly        |
+   +--------------+---------------+
+                  |
+                  v
+   +------------------------------+
+   | Validation Service updates   |
+   | trust score and final price  |
+   +------------------------------+
+```
+
+The main idea is this. Extension plus crawler collect prices, validation decides what to trust, validated price changes go into the price database, and those changes produce events that drive notifications. Separately, the read path for charts stays simple and fast through the Price History Service querying the time series price store.
+
+If you are drawing this in an interview, I would start with just three lanes. Client API read path, data collection path, and notification path. That keeps the whiteboard clean and makes the story easy to explain.
+
+
 ---
 
 <details open>

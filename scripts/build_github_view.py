@@ -186,6 +186,83 @@ def details(title: str, body: str, open_: bool = False) -> str:
     return f"<details{flag}>\n<summary><strong>{html.escape(title)}</strong></summary>\n\n{body}\n</details>\n\n"
 
 
+def parse_diag_cell(s: str) -> dict | None:
+    s = s.strip()
+    if s == "null":
+        return None
+    a = re.search(r"a:\s*'((?:[^'\\]|\\.)*)'", s)
+    if a:
+        l = re.search(r"l:\s*'((?:[^'\\]|\\.)*)'", s)
+        return {
+            "a": unescape_js(a.group(1)),
+            "l": unescape_js(l.group(1)) if l else "",
+        }
+    t = re.search(r"t:\s*'((?:[^'\\]|\\.)*)'", s)
+    sub = re.search(r"s:\s*'((?:[^'\\]|\\.)*)'", s)
+    c = re.search(r"c:\s*'([^']*)'", s)
+    return {
+        "t": unescape_js(t.group(1)) if t else "",
+        "s": unescape_js(sub.group(1)) if sub else "",
+        "c": unescape_js(c.group(1)) if c else "sec",
+    }
+
+
+def parse_diag(block: str) -> list[list]:
+    m = re.search(r"diag:\[", block)
+    if not m:
+        return []
+    start = m.end() - 1
+    end = find_bracket_end(block, start, "[", "]")
+    if end < 0:
+        return []
+    inner = block[start + 1 : end]
+    rows: list[list] = []
+    i = 0
+    while i < len(inner):
+        while i < len(inner) and inner[i] in " \n,":
+            i += 1
+        if i >= len(inner):
+            break
+        if inner[i] != "[":
+            i += 1
+            continue
+        row_end = find_bracket_end(inner, i, "[", "]")
+        row_inner = inner[i + 1 : row_end]
+        cells: list = []
+        j = 0
+        while j < len(row_inner):
+            while j < len(row_inner) and row_inner[j] in " \n,":
+                j += 1
+            if j >= len(row_inner):
+                break
+            if row_inner[j : j + 4] == "null":
+                cells.append(None)
+                j += 4
+                continue
+            if row_inner[j] == "{":
+                obj_end = find_bracket_end(row_inner, j, "{", "}")
+                cells.append(parse_diag_cell(row_inner[j : obj_end + 1]))
+                j = obj_end + 1
+                continue
+            j += 1
+        rows.append(cells)
+        i = row_end + 1
+    return rows
+
+
+def parse_scale_pills(block: str) -> list[dict]:
+    scale_body = extract_object_field(block, "scale")
+    if not scale_body:
+        return []
+    m = re.search(r"pills:\[(.*?)\]", scale_body, re.S)
+    if not m:
+        return []
+    try:
+        return json.loads("[" + m.group(1) + "]")
+    except json.JSONDecodeError:
+        return []
+
+
 def split_v15_systems(html_text: str) -> list[str]:
     start = html_text.index("const C=[")
     end = html_text.index("function buildDiag", start)
@@ -232,6 +309,8 @@ def parse_v15_system(block: str, idx: int) -> dict:
     arch_body = extract_object_field(block, "arch")
     arch_d = extract_string_field("arch:{" + arch_body + "}", "d") if arch_body else ""
     arch_t = extract_string_field("arch:{" + arch_body + "}", "t") if arch_body else ""
+    diag = parse_diag(block)
+    scale_pills = parse_scale_pills(block)
 
     return {
         "idx": idx,
@@ -258,6 +337,8 @@ def parse_v15_system(block: str, idx: int) -> dict:
         "scale": scale_text,
         "arch_d": arch_d,
         "arch_t": arch_t,
+        "diag": diag,
+        "scale_pills": scale_pills,
     }
 
 
@@ -281,6 +362,18 @@ def render_v15_markdown(s: dict) -> str:
     ]
     if s["dn"]:
         lines += [f"> {strip_html_tags(s['dn'])}", ""]
+
+    if s.get("arch_d"):
+        lines += [
+            "## Architecture diagram",
+            "",
+            "```",
+            s["arch_d"].strip(),
+            "```",
+            "",
+        ]
+        if s.get("arch_t"):
+            lines += [md_block(s["arch_t"]), ""]
 
     lines += ["---", "", details("Problem", md_block(s["q1"]), open_=True)]
 

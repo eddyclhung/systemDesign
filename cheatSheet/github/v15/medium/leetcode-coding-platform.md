@@ -11,6 +11,82 @@ Submit → enqueue in SQS → worker pulls job → runs code inside a Docker con
 
 > Docker + seccomp: no network, kill on timeout  |  Compare stdout vs expected  |  Autoscale workers by queue depth
 
+## Architecture diagram
+
+```
++-------------------+
+                         |   Web / Mobile    |
+                         |      Client       |
+                         +---------+---------+
+                                   |
+                     GET problems, submit code, poll
+                                   |
+                         +---------v---------+
+                         |    API Server      |
+                         |  auth from JWT     |
+                         |  problem APIs      |
+                         |  submit API        |
+                         |  leaderboard API   |
+                         +----+---------+-----+
+                              |         |
+                 read problems|         |read submission status
+                              |         |
+                    +---------v--+   +--v----------------+
+                    | Problems DB |   |  Submissions DB   |
+                    | DynamoDB    |   | results, code,    |
+                    | problems,   |   | passed, metadata  |
+                    | test cases, |   +---------+---------+
+                    | code stubs  |             |
+                    +------------ +             |
+                                                |
+                                   enqueue job  |
+                                                |
+                                      +---------v---------+
+                                      |   Job Queue        |
+                                      |   SQS or similar   |
+                                      +---------+---------+
+                                                |
+                                          pull job
+                                                |
+                                      +---------v---------+
+                                      | Submission Worker  |
+                                      | picks runtime      |
+                                      | loads problem      |
+                                      | runs test harness  |
+                                      +----+----------+----+
+                                           |          |
+                              execute code  |          | update leaderboard
+                                           |          |
+                     +---------------------v--+    +--v------------------+
+                     | Sandboxed Containers    |    | Redis Sorted Set    |
+                     | python, java, js, etc  |    | competition ranks   |
+                     | CPU and memory limits  |    | fast top N reads    |
+                     | no network             |    +---------+-----------+
+                     | timeout enforced       |              |
+                     +-----------+------------+              |
+                                 |                           |
+                          stdout or result                   |
+                                 |                           |
+                                 +-------------+-------------+
+                                               |
+                                      +--------v--------+
+                                      |   API Server    |
+                                      | returns status  |
+                                      | to polling      |
+                                      +--------+--------+
+                                               |
+                                      +--------v--------+
+                                      |     Client      |
+                                      | shows result    |
+                                      | polls leaderboard|
+                                      +-----------------+
+```
+
+If you want the interview version, I would draw the simpler version first. Start with Client, API Server, Problems DB, Submissions DB, Queue, Worker, Sandboxed Containers, and Redis for leaderboard. Then explain that problem reads are synchronous, but submission execution is asynchronous because code runs for seconds and needs isolation.
+
+The main idea is simple. Reads go straight through the API. Code submission goes through a queue to workers, workers execute inside locked down containers, results are stored in the submissions database, and leaderboard reads come from Redis instead of recomputing from the database every time.
+
+
 ---
 
 <details open>

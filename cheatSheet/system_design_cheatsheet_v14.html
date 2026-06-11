@@ -965,6 +965,11 @@ Name both explicitly — "POST /messages over REST, delivery notifications over 
     <span class="db-fw-arrow">▶</span>
   </div>
   <div class="db-fw-body">
+    <p style="font-size:11px;color:var(--txt-sec);margin-bottom:10px;line-height:1.6">
+      <b>70+ patterns</b> with staff answer + trade-offs + examples —
+      <a href="interview-quick-fire.md" style="color:var(--txt-info)">interview-quick-fire.md</a>
+      (best on GitHub). Includes <b>classic failure modes</b> (thundering herd, retry storm, hot key, split brain). Below: top 10 to drill before a mock.
+    </p>
     <div class="qf-row"><div class="qf-prob">Reduce DB read load</div><div class="qf-ans">Read replicas + Redis cache-aside. Target &gt;90% hit rate. Invalidate on write. <em>Netflix serves ~95% of API from cache.</em></div></div>
     <div class="qf-row"><div class="qf-prob">Handle traffic spikes</div><div class="qf-ans">Stateless tier + autoscaling. Queue async work (SQS/Kafka). Circuit breaker on downstream deps. <em>Shopify queues checkout writes on Black Friday.</em></div></div>
     <div class="qf-row"><div class="qf-prob">Eliminate single point of failure</div><div class="qf-ans">Redundancy at every tier: dual LBs, N app servers, DB replication, multi-AZ cache. Health checks remove bad nodes automatically.</div></div>
@@ -976,6 +981,7 @@ Name both explicitly — "POST /messages over REST, delivery notifications over 
     <div class="qf-row"><div class="qf-prob">Store large files</div><div class="qf-ans">Object storage (S3) + CDN. Pre-signed URLs for direct client upload/download. DB stores metadata + URL only — never blob bytes in Postgres.</div></div>
     <div class="qf-row"><div class="qf-prob">Search across billions of records</div><div class="qf-ans">Elasticsearch as derived index. CDC or write-through from primary DB. ES is never source of truth — rebuild index if lost.</div></div>
     <div class="closer" style="margin-top:4px">Pattern for every answer: name the technique → explain why it fits this workload → name the tradeoff you're accepting.</div>
+    <p style="font-size:11px;color:var(--txt-ter);margin-top:10px">+60 more: thundering herd, metastable failure, poison messages, sagas, rate limits, payments → <a href="interview-quick-fire.md" style="color:var(--txt-info)">interview-quick-fire.md</a></p>
   </div>
 
   <div class="db-fw-hdr" onclick="toggleDb(this)">

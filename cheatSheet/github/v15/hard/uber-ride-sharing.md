@@ -11,6 +11,97 @@ Driver location → Redis GEOADD every 4 seconds. This is ephemeral — never wr
 
 > NEVER write driver loc to PG every 4s — Redis only  |  PG = trip durability  |  Surge = demand/supply ratio per geohash
 
+## Architecture diagram
+
+```
++-------------------+
+                        |   Rider Client    |
+                        | iOS / Android App |
+                        +---------+---------+
+                                  |
+                                  v
+                           +------+------+
+                           | API Gateway |
+                           | auth, rate  |
+                           | limiting    |
+                           +------+------+
+                                  |
+                    +-------------+-------------+
+                    |                           |
+                    v                           v
+            +-------+--------+          +-------+--------+
+            |  Ride Service  |          | Notification   |
+            | fares, rides,  |<-------->| Service        |
+            | ride state     |          | push to driver |
+            +---+--------+---+          +-------+--------+
+                |        |                      |
+                |        |                      v
+                |        |               +------+------+
+                |        |               | Driver      |
+                |        |               | Client      |
+                |        |               +------+------+
+                |        |                      |
+                |        |                      v
+                |        |               PATCH /rides/{id}
+                |        |
+                |        +------------------------------+
+                |                                       |
+                v                                       v
+        +-------+--------+                    +---------+---------+
+        | Ride DB        |                    | Fare DB           |
+        | rides, status, |                    | estimate records  |
+        | rider, driver  |                    +-------------------+
+        +----------------+
+
+                Fare estimate path
+                ------------------
+ Rider Client -> API Gateway -> Ride Service -> Maps API
+                                      |
+                                      v
+                                   Fare DB
+                                      |
+                                      v
+                                 Fare response
+
+
+                        Matching and location path
+                        --------------------------
+
++-------------------+        POST /drivers/location      +----------------------+
+|   Driver Client   | ---------------------------------> |  Location Service    |
+| GPS updates       |                                    | ingest driver coords |
++-------------------+                                    +----------+-----------+
+                                                                    |
+                                                                    v
+                                                           +--------+---------+
+                                                           | Redis Geo Store  |
+                                                           | current driver   |
+                                                           | locations        |
+                                                           +--------+---------+
+                                                                    |
+                                                                    v
+                                                           +--------+----------+
+                                                           | Matching Service  |
+                                                           | find nearest      |
+                                                           | available driver  |
+                                                           +---+-----------+---+
+                                                               |           |
+                                                               |           v
+                                                               |     +-----+------+
+                                                               |     | Redis Lock |
+                                                               |     | driver TTL |
+                                                               |     +-----+------+
+                                                               |           |
+                                                               v           v
+                                                        +------+-----------+------+
+                                                        | Ride DB update ride     |
+                                                        | requested or accepted   |
+                                                        +-------------------------+
+
+Request ride flow
+-----------------
+```
+
 ---
 
 <details open>

@@ -11,6 +11,16 @@ Topics split into partitions for parallelism. Consumer groups assign one consume
 
 > Partition = parallelism unit  |  Consumer group = load balance  |  ISR = durability quorum
 
+## Architecture diagram
+
+```
+Producers -> Kafka Topic (P0..Pn) -> Consumer Group -> Workers
+         \-> replicas in ISR
+```
+
+Draw partitions and consumer group. Mention ISR for durability.
+
+
 ---
 
 <details open>

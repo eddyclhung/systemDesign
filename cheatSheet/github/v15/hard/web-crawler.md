@@ -11,6 +11,103 @@ The URL Frontier is a priority queue with per-domain rate limiting. Crawler work
 
 > Bloom filter = fast prob. check before Cassandra lookup  |  Per-domain queue = politeness
 
+## Architecture diagram
+
+```
++-------------------+
+                         |   Seed URL Input  |
+                         +---------+---------+
+                                   |
+                                   v
+                    +-------------------------------+
+                    | URL Frontier Queue   SQS      |
+                    +-------------------------------+
+                                   |
+                            dequeue URL msg
+                                   |
+                                   v
+         +---------------------------------------------------+
+         | URL Fetcher Workers                               |
+         | - check URL dedup in Metadata DB                  |
+         | - read domain robots rules                        |
+         | - acquire per-domain lock in Redis                |
+         | - enforce crawl delay and rate limit              |
+         | - resolve DNS and fetch page                      |
+         +-------------------+-------------------------------+
+                             |                    |
+                    disallowed or delayed         | fetched HTML
+                             |                    v
+                             |         +------------------------+
+                             |         | Raw HTML Blob Storage  |
+                             |         | S3                     |
+                             |         +-----------+------------+
+                             |                     |
+                             |                     v
+                             |      +-------------------------------+
+                             |      | Processing Queue              |
+                             |      | URL id or blob pointer        |
+                             |      +---------------+---------------+
+                             |                      |
+                             |                      v
+                             |      +-------------------------------+
+                             |      | Text and URL Extraction       |
+                             |      | Workers                       |
+                             |      | - parse HTML                  |
+                             |      | - extract text                |
+                             |      | - extract outgoing links      |
+                             |      | - hash content for dedup      |
+                             |      +----------+----------+---------+
+                             |                 |          |
+                             |                 |          |
+                             |                 |          v
+                             |                 |   +-------------------+
+                             |                 |   | New URL Discovery |
+                             |                 |   +---------+---------+
+                             |                 |             |
+                             |                 |     check seen URL
+                             |                 |     check depth limit
+                             |                 |             |
+                             |                 |             v
+                             |                 |   +--------------------+
+                             |                 |   | URL Frontier Queue |
+                             |                 |   +--------------------+
+                             |                 |
+                             |                 v
+                             |      +-------------------------------+
+                             |      | Text Blob Storage   S3        |
+                             |      +-------------------------------+
+                             |
+                             v
+                  +-------------------------------+
+                  | Retry with Backoff            |
+                  | SQS visibility timeout + DLQ  |
+                  +-------------------------------+
+
+
+     +--------------------+      +----------------------+      +------------------+
+     | Metadata DB        |      | Redis                |      | DNS Cache        |
+     | - URL state        |      | - per-domain lock    |      | - domain to IP   |
+     | - crawl depth      |      | - rate limiting      |      +------------------+
+     | - html pointer     |      +----------------------+
+     | - text pointer     |
+     | - content hash     |
+     | - robots rules     |
+     | - last crawl time  |
+     +--------------------+
+
+
+ Outside system
+
+     +------------------+        +------------------+
+     | DNS Providers    |        | External Websites|
+     +------------------+        +------------------+
+```
+
+If you are presenting this in an interview, the simplest way to walk through it is this. URLs enter the frontier queue, fetchers crawl pages politely, raw HTML goes to blob storage, parser workers extract text and links, text goes to storage, and new links go back into the frontier after dedup checks.
+
+The two things that make this feel complete are the control plane pieces. Metadata DB tracks crawl state and dedup, while Redis handles per-domain coordination so you do not overload a site.
+
+
 ---
 
 <details open>

@@ -28,6 +28,14 @@ OUT = ROOT / "cheatSheet" / "system_design_cheatsheet_v15_github.html"
 V10_SRC = ROOT / "cheatSheet" / "SystemDesign_Complete_v10.html"
 V10_OUT = ROOT / "cheatSheet" / "SystemDesign_Complete_v10_github.html"
 
+NODE_COLORS = {
+    "info": ("var(--bdr-info)", "var(--txt-info)"),
+    "succ": ("var(--bdr-succ)", "var(--txt-succ)"),
+    "dang": ("var(--bdr-dang)", "var(--txt-dang)"),
+    "warn": ("var(--bdr-warn)", "var(--txt-warn)"),
+    "sec": ("var(--bdr-sec)", "var(--txt-sec)"),
+}
+
 TAB_SECTIONS = [
     ("p", "Problem"),
     ("f", "Failures"),
@@ -162,6 +170,69 @@ def render_script(lines: list) -> str:
     return "".join(out)
 
 
+def render_flow_cell(cell: dict | None) -> str:
+    if cell is None:
+        return '<div class="demp"></div>'
+    if "a" in cell:
+        lbl = (
+            f'<span class="dal">{esc(cell["l"])}</span>'
+            if cell.get("l")
+            else ""
+        )
+        return (
+            f'<div class="darr"><span class="das">{esc(cell["a"])}</span>{lbl}</div>'
+        )
+    bv, tv = NODE_COLORS.get(cell.get("c", "sec"), NODE_COLORS["sec"])
+    sub = (cell.get("s") or "").replace("\n", "<br>")
+    sub_html = f'<div class="ds">{sub}</div>' if sub else ""
+    return (
+        f'<div class="dnode" style="border-color:{bv}">'
+        f'<div class="dt" style="color:{tv}">{esc(cell.get("t", ""))}</div>'
+        f"{sub_html}</div>"
+    )
+
+
+def render_diag(rows: list, dn: str) -> str:
+    if not rows:
+        return ""
+    h = ""
+    for row in rows:
+        h += '<div class="drow">'
+        for cell in row:
+            h += render_flow_cell(cell)
+        h += "</div>"
+    note = strip_html_tags(dn) if dn else ""
+    if note:
+        h += f'<div class="dnote">{esc(note)}</div>'
+    return f'<div class="diag">{h}</div>'
+
+
+def render_scale_pills(pills: list) -> str:
+    if not pills:
+        return ""
+    items = "".join(
+        f'<span class="pat-pill {esc(p.get("cls", ""))}">{esc(p.get("label", ""))}</span>'
+        for p in pills
+    )
+    return f'<div class="pat-pills">{items}</div>'
+
+
+def render_arch_block(arch_d: str, arch_t: str) -> str:
+    if not arch_d and not arch_t:
+        return ""
+    h = '<div class="card-arch"><div class="nlbl">Architecture diagram</div>'
+    if arch_d:
+        h += f'<div class="ascii-wrap"><pre>{esc(arch_d)}</pre></div>'
+    if arch_t:
+        for p in arch_t.split("\n\n"):
+            if p.strip():
+                h += (
+                    f'<div class="ascii-desc"><p>{esc(p.replace(chr(10), " ").strip())}</p></div>'
+                )
+    h += "</div>"
+    return h
+
+
 def render_arch(arch_d: str, arch_t: str) -> str:
     if not arch_d:
         return '<p style="color:var(--txt-ter);padding:4px 0">Architecture diagram not available.</p>'
@@ -236,6 +307,9 @@ def render_card_html(s: dict) -> str:
         see = f'<div class="see-also">See also: {s["see_also"]}</div>'
 
     tags = "".join(f'<span class="tag">{esc(t)}</span>' for t in s["tags"])
+    pills = render_scale_pills(s.get("scale_pills") or [])
+    flow = render_diag(s.get("diag") or [], s.get("dn", ""))
+    arch_block = render_arch_block(s.get("arch_d", ""), s.get("arch_t", ""))
 
     # GitHub-safe fallback: <details> sections (work without JS)
     gh_sections = ""
@@ -274,10 +348,9 @@ def render_card_html(s: dict) -> str:
   <label class="studied-lbl"><input type="checkbox" data-studied="{idx}" onchange="toggleStudied({idx},this.checked)"> Studied</label>
 </div>
 <div class="chdr"><div><div class="ctitle">{esc(s["title"])}</div><div class="csub">{esc(s["sub"])}</div></div><span class="badge {badge}">{dtxt}</span></div>
-{see}
+{see}{pills}{flow}{arch_block}
 <div class="narr"><div class="nlbl">Data flow</div><div class="ntxt">{na}</div></div>
 <div class="trow">{tags}</div>
-{f'<div class="dnote" style="padding:8px 14px;font-size:11px;color:var(--txt-ter)">{dn}</div>' if dn else ''}
 <div class="gh-fallback">{gh_sections}</div>
 <div class="js-tabs-wrap js-only">
 <div class="tabs" role="tablist">{tabs}</div>
@@ -310,6 +383,9 @@ html.js-enabled .gh-fallback{display:none}
 html.js-enabled .js-only{display:revert}
 html:not(.js-enabled) .js-only{display:none!important}
 .noscript-banner{background:var(--bg-warn);border:1px solid var(--bdr-warn);padding:10px 14px;margin:0 16px 12px;border-radius:var(--r);font-size:12px;line-height:1.5}
+.card-arch{padding:12px 14px;border-bottom:.5px solid var(--bdr-ter);background:var(--bg-sec)}
+.card-arch .ascii-wrap{margin-top:6px}
+.card-arch .ascii-desc{margin-top:8px;font-size:12px;color:var(--txt-sec);line-height:1.65}
 """
     text = text.replace("</style>", gh_css + "\n</style>", 1)
 

@@ -11,6 +11,97 @@ Every edit is an operation (insert/delete at position + document version). The O
 
 > OT: transform(op_A, op_B) so all clients converge  |  CRDT alternative: no server, commutative ops
 
+## Architecture diagram
+
+```
++------------------+
+                   |      Client      |
+                   |  Web / Mobile    |
+                   +---------+--------+
+                             |
+                    HTTP + WebSocket
+                             |
+                    +--------v--------+
+                    |   API Gateway   |
+                    +--------+--------+
+                             |
+            +----------------+----------------+
+            |                                 |
+            | POST /docs                      | WS /docs/{docId}
+            |                                 |
+   +--------v--------+               +--------v-------------------+
+   | Document Meta   |               | Document Service           |
+   | Service         |               | owns active doc sessions   |
+   +--------+--------+               | runs OT transform          |
+            |                        | tracks presence in memory  |
+            |                        +----+-------------------+---+
+            |                             |                   |
+            |                             |                   |
+   +--------v--------+                    |                   |
+   | Postgres        |                    |                   |
+   | Document MetaDB |                    |                   |
+   | docId, title,   |                    |                   |
+   | versionId       |                    |                   |
+   +-----------------+                    |                   |
+                                          |                   |
+                              append ops  |                   | broadcast edits
+                                          |                   | and cursors
+                                  +-------v--------+          |
+                                  | Document Ops   |<---------+
+                                  | DB Cassandra   |
+                                  | partition by   |
+                                  | documentId     |
+                                  +----------------+
+
+In memory inside Document Service per active document
+
+  documentId
+    -> active websocket connections
+    -> latest loaded operations or materialized doc state
+    -> pending unacked edits
+    -> cursor positions
+    -> presence list
+```
+
+The core idea is simple. Document Meta Service creates documents and stores lightweight metadata. Document Service handles live collaboration, receives edit operations over WebSocket, applies Operational Transformation, writes durable ops to Cassandra, then pushes the transformed updates to every connected editor.
+
+If you want the scaled version, add this around Document Service.
+```
+Clients
+  |
+  v
++------------------+
+| Load Balancer    |
++--------+---------+
+         |
+         v
++-----------------------------------------------+
+| Document Service Cluster                      |
+|                                               |
+|  +-----------+  +-----------+  +-----------+  |
+|  | Doc Srv A |  | Doc Srv B |  | Doc Srv C |  |
+|  +-----+-----+  +-----+-----+  +-----+-----+  |
+|        \\\\            |              //        |
+|         \\\\           |             //         |
+|          +---------- v -----------+           |
+|          | Consistent Hash Ring   |           |
+|          | docId -> owning server |           |
+|          +-----------+------------+           |
++----------------------+------------------------+
+                       |
+                       v
+                +------+------+
+                | ZooKeeper   |
+                | ring config |
+                +-------------+
+
+Each docId maps to one owning Document Service.
+All editors for the same document connect to the same server.
+That keeps OT and fanout simple.
+```
+If you want, I can also give you a cleaner interview-ready version with just 6 boxes so it is easier to draw under time pressure.
+
+
 ---
 
 <details open>

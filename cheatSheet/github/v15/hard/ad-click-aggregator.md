@@ -11,6 +11,73 @@ Click events → Kafka. Real-time path: Flink tumbling windows aggregate per ad_
 
 > Lambda: real-time ≈ accurate + batch = exact  |  Name both paths explicitly  |  Click dedup: UUID + Bloom filter
 
+## Architecture diagram
+
+```
++----------------------+
+                           |  Ad Placement Svc    |
+                           |  returns ad, target  |
+                           |  impressionId, sig   |
+                           +----------+-----------+
+                                      |
+                                      v
++---------+        click ad        +--------------------+
+|  User   | ---------------------> |   Click Endpoint   |
+| Browser |                        |   /click           |
++----+----+                        +-----+----------+---+
+     ^                                   |          |
+     | 302 redirect to advertiser        |          |
+     |                                   |          |
+     |                                   |          v
+     |                                   |   +-------------+
+     |                                   |   | Signature   |
+     |                                   |   | Verification|
+     |                                   |   +------+------+ 
+     |                                   |          |
+     |                                   |          v
+     |                                   |   +-------------+
+     |                                   |   | Redis Cache |
+     |                                   |   | dedup by    |
+     |                                   |   | impressionId|
+     |                                   |   +-------+-----+ 
+     |                                   |           |
+     |                                   | duplicate?| 
+     |                                   |    yes -> drop
+     |                                   |           |
+     |                                   v          no
+     |                             +-----------------------+
+     |                             | Kafka or Kinesis      |
+     |                             | durable click stream  |
+     |                             +-----+------------+----+
+     |                                   |            |
+     |                                   |            +------------------+
+     |                                   |                               |
+     |                                   v                               v
+     |                         +-------------------+          +-------------------+
+     |                         | Flink stream proc |          | S3 data lake      |
+     |                         | window by minute  |          | raw click archive |
+     |                         | aggregate clicks  |          +---------+---------+
+     |                         +---------+---------+                    |
+     |                                   |                              |
+     |                                   v                              v
+     |                         +-------------------+          +-------------------+
+     |                         | OLAP analytics DB | <--------| Batch reconcile   |
+     |                         | ClickHouse,       |          | Spark daily or    |
+     |                         | BigQuery, etc     |          | hourly recompute  |
+     |                         +---------+---------+          +-------------------+
+     |                                   |
+     |                                   v
+     |                         +-------------------+
+     +-------------------------| Advertiser Query  |
+                               | dashboard or API  |
+                               +-------------------+
+```
+
+The mental model is two paths. The serving path handles the user click and redirect fast, and the analytics path turns raw clicks into queryable per minute metrics.
+
+If you were drawing this in an interview, I would keep the main story to five boxes first. User, Click Endpoint, Stream, Stream Processor, OLAP DB. Then add Redis for dedup and S3 plus batch reconcile only if the interviewer asks about idempotency or correctness.
+
+
 ---
 
 <details open>

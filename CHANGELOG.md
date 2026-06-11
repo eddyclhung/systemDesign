@@ -8,6 +8,8 @@
 - `SystemDesign_Complete_v10_github.html` — v10 cards pre-rendered
 - `scripts/build_prerendered_html.py` — regenerate `*_github.html` after content edits
 - `.github/workflows/pages.yml` — GitHub Pages deploy (full JS interactivity when published)
+- GitHub cards include flow diagram + ASCII architecture diagram on every system
+- `cheatSheet/interview-quick-fire.md` — standalone quick-fire reference (60+ patterns, expanded from inline 10)
 
 ### UX
 - Visible topbar search (was hidden)

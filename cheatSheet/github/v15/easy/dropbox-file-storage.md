@@ -11,6 +11,81 @@ The client splits a file into 4 MB chunks and computes a SHA-256 hash per chunk.
 
 > Client uploads only NEW chunks  |  SHA-256 = global dedup  |  Delta sync = only changed chunks
 
+## Architecture diagram
+
+```
++----------------------+
+                        |   Desktop / Mobile   |
+                        |   Web Client + Sync  |
+                        |   Agent              |
+                        +----------+-----------+
+                                   |
+                      auth, metadata APIs, change feed
+                                   |
+                                   v
+                        +----------------------+
+                        |   LB / API Gateway   |
+                        +----------+-----------+
+                                   |
+                                   v
+                        +----------------------+
+                        |     File Service     |
+                        | - authz checks       |
+                        | - file metadata      |
+                        | - share management   |
+                        | - presigned URLs     |
+                        | - signed CDN URLs    |
+                        +----+------------+----+
+                             |            |
+                metadata rw  |            | change events
+                             v            v
+                  +----------------+   +------------------+
+                  | FileMetadataDB |   | Notification /   |
+                  | - files        |   | Change Service   |
+                  | - sharedFiles  |   | - WebSocket/SSE  |
+                  | - upload state |   +--------+---------+
+                  +----------------+            |
+                                                |
+                                   push updates |
+                                                v
+                                        +---------------+
+                                        | Client devices|
+                                        +---------------+
+
+Upload path
+-----------
+Client -> File Service -> get presigned upload URL
+Client -------------------------------> Blob Storage / S3
+                                         |
+                                         | upload complete event
+                                         v
+                                   File Service updates DB
+
+Download path
+-------------
+Client -> File Service -> auth check + signed CDN URL
+Client -------------------------------> CDN
+                                          |
+                                   cache miss|
+                                          v
+                                      Blob Storage / S3
+
+Sharing path
+------------
+Client -> File Service -> update share records in DB
+
+Sync path
+---------
+Local file change -> Sync Agent -> upload flow
+Remote file change -> Notification Service pushes event
+Missed event fallback -> Client polls `GET /files/changes?since=...`
+```
+
+The main mental model is this. Your app server is the control plane, not the data plane. It decides who can access a file and issues signed URLs, but the heavy file bytes go directly between the client, blob storage, and CDN.
+
+If you want, I can also give you a more interview ready version that is smaller and faster to draw on a whiteboard.
+
+
 ---
 
 <details open>

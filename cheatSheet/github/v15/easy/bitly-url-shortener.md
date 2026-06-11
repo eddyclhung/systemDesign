@@ -13,6 +13,53 @@ A user submits a long URL. The API server hashes it, encodes seven characters in
 
 > Write: Base62(hash(longURL)) → Redis + PG  |  302 not 301 → preserves analytics
 
+## Architecture diagram
+
+```
++-------------------+
+                    |      Clients      |
+                    | browser mobile app|
+                    +---------+---------+
+                              |
+                              v
+                    +-------------------+
+                    |   Load Balancer   |
+                    +----+---------+----+
+                         |         |
+              write path |         | read path
+                         v         v
+              +----------------+  +----------------+
+              | Write Service  |  |  Read Service  |
+              +-------+--------+  +-------+--------+
+                      |                   |
+                      |                   |
+                      v                   v
+             +----------------+   +----------------+
+             | Redis Counter  |   |  Redis Cache   |
+             | atomic INCR    |   | short -> long  |
+             +-------+--------+   +-------+--------+
+                     |                    |
+                     |                    | cache miss
+                     |                    v
+                     |           +--------------------+
+                     +---------->|     Postgres       |
+                                 | short_code PK      |
+                                 | long_url           |
+                                 | expiration         |
+                                 +---------+----------+
+                                           |
+                                           v
+                                 +--------------------+
+                                 | Background Cleanup |
+                                 | delete expired URLs|
+                                 +--------------------+
+```
+
+If you want to say it out loud, keep it simple. Clients hit a load balancer. Writes go to a write service, which gets a unique ID from Redis Counter, converts it to base62, and stores the mapping in Postgres. Reads go to a read service, which checks Redis Cache first, falls back to Postgres on a miss, checks expiration, and returns a 302 redirect.
+
+If you want a slightly stronger version, you could add a CDN in front of the read path for hot links, but I would start with the sketch above in an interview.
+
+
 ---
 
 <details open>

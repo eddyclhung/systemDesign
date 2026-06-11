@@ -11,6 +11,80 @@ Upload raw GPS → S3. Async processing worker computes stats and matches segmen
 
 > Polyline encoding ~75% compression  |  Segment match = Hausdorff distance  |  Leaderboard = ZADD/ZREVRANGE
 
+## Architecture diagram
+
+```
++----------------------+
+                           |      Mobile App      |
+                           | start pause stop     |
+                           | local GPS tracking   |
+                           | local stats display  |
+                           | offline buffer       |
+                           +----------+-----------+
+                                      |
+                         create sync fetch activities
+                                      |
+                                      v
+                           +----------------------+
+                           |    API or LB Layer    |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           |   Activity Service   |
+                           | activity lifecycle   |
+                           | ingest route uploads |
+                           | fetch activity feed  |
+                           +-----+-----------+----+
+                                 |           |
+                                 |           |
+                                 v           v
+                    +------------------+   +------------------+
+                    |   Activities DB   |   |    Friends DB    |
+                    | activity metadata |   | user friendships |
+                    | route points      |   +------------------+
+                    | state log         |
+                    +------------------+
+                                 |
+                                 |
+                                 v
+                    +------------------------------+
+                    | optional cache for hot reads |
+                    +------------------------------+
+
+Read flow
+  Mobile App -> API -> Activity Service -> Activities DB or Friends DB
+
+Write flow for normal offline-first design
+  Mobile App stores GPS locally during run
+  Mobile App uploads completed activity in one sync
+  Activity Service writes metadata and route data to DB
+
+Optional realtime sharing extension
+
+          athlete app sends periodic updates every few seconds
+                                  |
+                                  v
+                           +----------------------+
+                           |   Activity Service   |
+                           +----------+-----------+
+                                      |
+                                      v
+                           +----------------------+
+                           |   Activities DB      |
+                           +----------+-----------+
+                                      |
+                     friends poll for latest activity updates
+                                      |
+                                      v
+                           +----------------------+
+                           |     Friends Apps     |
+                           +----------------------+
+```
+
+The main idea is that the client does most of the live tracking work locally. That is the key simplification here. The backend mainly handles activity creation, final sync, and reads for completed runs. If you want, I can also give you a cleaner interview-style version that fits in 30 seconds on a whiteboard.
+
+
 ---
 
 <details open>

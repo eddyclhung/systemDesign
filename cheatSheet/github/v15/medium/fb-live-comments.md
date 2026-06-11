@@ -11,6 +11,68 @@ Comments → Kafka partitioned by video_id. Delivery servers consume their parti
 
 > Batch 100ms bursts — never push per-comment at 1M scale  |  Sample at extreme scale  |  Kafka partition = delivery server locality
 
+## Architecture diagram
+
+```
++-------------------+
+                     |   Commenter App   |
+                     |  POST comment     |
+                     +---------+---------+
+                               |
+                               v
+                     +---------------------+
+                     |   API / Comment     |
+                     | Management Service  |
+                     +----+------------+---+
+                          |            |
+             write comment|            | publish event
+                          v            v
+                 +----------------+   +-------------------+
+                 | Comments DB    |   | Pub/Sub Bus       |
+                 | DynamoDB       |   | Redis or similar  |
+                 +----------------+   +---------+---------+
+                                                |
+                                   fan out to interested servers
+                                                |
+                      +-------------------------+-------------------------+
+                      |                         |                         |
+                      v                         v                         v
+              +---------------+         +---------------+         +---------------+
+              | Realtime Srv 1|         | Realtime Srv 2|   ...   | Realtime Srv N|
+              | SSE conns     |         | SSE conns     |         | SSE conns     |
+              | local map     |         | local map     |         | local map     |
+              +------+--------+         +------+--------+         +------+--------+
+                     |                         |                         |
+                     v                         v                         v
+              +-------------+           +-------------+           +-------------+
+              | Viewer Apps |           | Viewer Apps |           | Viewer Apps |
+              | SSE stream  |           | SSE stream  |           | SSE stream  |
+              +-------------+           +-------------+           +-------------+
+
+
+History and catch-up path
+
+Viewer App
+   |
+   | GET /comments/:liveVideoId?cursor=lastCommentId&pageSize=10
+   v
++-------------------+
+| Comment Management |
+| Service            |
++---------+---------+
+          |
+          v
++-------------------+
+| Comments DB       |
+| paginated reads   |
++-------------------+
+```
+
+If you want the best interview version, I would say it out loud like this. Comments are written through a comment service into DynamoDB. New comment events are published to a pub sub layer. Realtime servers hold SSE connections to viewers and push comments out. Historical comments and reconnect catch-up come from the database using cursor pagination.
+
+For scale, you'll want one extra note on the diagram. Put a load balancer in front of the realtime servers and say you try to co-locate viewers of the same liveVideoId on the same server or small set of servers to reduce fanout waste.
+
+
 ---
 
 <details open>

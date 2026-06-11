@@ -13,6 +13,66 @@ Stateful chat servers maintain WebSocket connections. A sends a message → serv
 
 > Servers stateful (WS) but app logic stateless  |  Snowflake ID for ordering  |  Group: fan-out to all member servers
 
+## Architecture diagram
+
+```
++----------------------+
+                         |   Mobile and Web     |
+                         |       Clients        |
+                         +----------+-----------+
+                                    |
+                            WebSocket over TLS
+                                    |
+                         +----------v-----------+
+                         |       L4 Load        |
+                         |      Balancer        |
+                         +----------+-----------+
+                                    |
+                 +------------------+------------------+
+                 |                                     |
+        +--------v--------+                   +--------v--------+
+        |   Chat Server   |                   |   Chat Server   |
+        |       A         |                   |       B         |
+        |-----------------|                   |-----------------|
+        | conn map        |                   | conn map        |
+        | ack handling    |                   | ack handling    |
+        | heartbeat       |                   | heartbeat       |
+        | inbox sync      |                   | inbox sync      |
+        +---+---------+---+                   +---+---------+---+
+            |         |                           |         |
+            |         +-----------+   +-----------+         |
+            |                     |   |                     |
+            |              +------v---v------+              |
+            |              | Redis Pub Sub   |              |
+            |              | user channels   |              |
+            |              +------+----------+              |
+            |                     |                         |
+            |                     |                         |
+   +--------v--------+   +--------v--------+      +--------v--------+
+   |   Chat Table    |   | Message Table   |      |   Inbox Table   |
+   | chat metadata   |   | durable msgs    |      | undelivered per |
+   | by chatId       |   | by messageId    |      | user or client  |
+   +-----------------+   +-----------------+      +-----------------+
+            \\\\                  |                          /
+             \\\\                 |                         /
+              \\\\      +---------v---------+              /
+               +----->| ChatParticipant   |<------------+
+                      | chatId, userId    |
+                      | + GSI by userId   |
+                      +-------------------+
+
+
+Attachment flow
+
+Client --get upload target--> Chat Server
+Client --upload directly-----> Blob Storage
+Client --send message with attachment URL--> Chat Server
+Recipient --download with signed URL-------> Blob Storage
+
+
+Delivery flow
+```
+
 ---
 
 <details open>

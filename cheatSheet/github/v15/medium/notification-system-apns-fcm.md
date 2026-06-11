@@ -11,6 +11,39 @@ Triggers hit the Notification API, which checks user preferences, applies per-us
 
 > Check prefs BEFORE enqueue  |  Redis SETNX event_id = dedup  |  Stagger viral fan-out
 
+## Architecture diagram
+
+```
++------------------+
+                    | Trigger sources  |
+                    | txn · marketing  |
+                    +--------+---------+
+                             |
+                             v
+                    +------------------+
+                    | Notification API |
+                    | prefs · dedup    |
+                    +--------+---------+
+                             |
+              +--------------+--------------+
+              |              |              |
+              v              v              v
+        +-----------+  +-----------+  +-----------+
+        | Kafka iOS |  |Kafka SMS  |  |Kafka Email|
+        +-----+-----+  +-----+-----+  +-----+-----+
+              |              |              |
+              v              v              v
+        +-----------+  +-----------+  +-----------+
+        | iOS worker|  | SMS worker|  |Email worker|
+        +-----+-----+  +-----+-----+  +-----+-----+
+              |              |              |
+              v              v              v
+           APNs/FCM       Twilio        SendGrid
+```
+
+Interview version: API checks prefs and dedup, publishes to Kafka, workers call providers. Add DLQ and token cleanup if pushed on reliability.
+
+
 ---
 
 <details open>

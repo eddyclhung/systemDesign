@@ -11,6 +11,17 @@ Users report GPS every 30s → geohash cell → Redis GEOADD in per-cell sorted 
 
 > Update location in Redis only — never PG per GPS fix  |  Query geohash neighbors  |  Push via WebSocket
 
+## Architecture diagram
+
+```
+GPS -> Location Svc -> Redis GEO (per geohash cell)
+Friend list <- PostgreSQL
+Matcher -> intersect -> WebSocket push
+```
+
+Two stores: ephemeral geo in Redis, social graph in PG.
+
+
 ---
 
 <details open>

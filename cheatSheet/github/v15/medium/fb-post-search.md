@@ -11,6 +11,94 @@ Posts → Kafka → async index worker tokenizes and writes to Elasticsearch wit
 
 > Privacy filter in app layer (not ES) — friend lists too large and dynamic  |  Rank = relevance × recency
 
+## Architecture diagram
+
+```
++-------------------+
+User Search Request -----> |   CDN / Edge      |
+                           +---------+---------+
+                                     |
+                                     v
+                           +-------------------+
+                           |   API Gateway     |
+                           | auth rate limit   |
+                           +---------+---------+
+                                     |
+                                     v
+                           +-------------------+
+                           |   Search Service   |
+                           +----+----------+---+
+                                |          |
+                    cache hit?  |          | fetch posts and fresh likes
+                                |          v
+                                |   +--------------+
+                                |   | Post Service |
+                                |   +--------------+
+                                |   +--------------+
+                                |   | Like Service |
+                                |   +--------------+
+                                v
+                       +-----------------------+
+                       | Distributed Search    |
+                       | Cache TTL < 1 minute  |
+                       +-----------+-----------+
+                                   |
+                              cache miss
+                                   |
+                                   v
+                +-------------------------------------------+
+                | Keyword Index Store                       |
+                | sharded by keyword                        |
+                |                                           |
+                | creation index = list by recency          |
+                | likes index = sorted set by like score    |
+                +-------------------+-----------------------+
+                                    |
+                     hot keywords   |   cold keywords
+                                    | 
+                    +---------------+---------------+
+                    |                               |
+                    v                               v
+             +-------------+                 +-------------+
+             | Redis shard |                 | Blob store  |
+             | in memory   |                 | S3 or R2    |
+             +-------------+                 +-------------+
+
+
+Write path
+==========
+
+Post Create ----> Post Service ----+
+                                   |
+Like Event -----> Like Service ----+----> Kafka or event log ----> Ingestion workers
+                                                                     |
+                                                                     v
+                                                          +----------------------+
+                                                          | Tokenizer            |
+                                                          | split into keywords  |
+                                                          | optional bigrams     |
+                                                          +----------+-----------+
+                                                                     |
+                                            +------------------------+----------------------+
+                                            |                                               |
+                                            v                                               v
+                               +--------------------------+                    +--------------------------+
+                               | Update creation indexes  |                    | Update likes indexes     |
+                               | add postId per keyword   |                    | sorted set score updates |
+                               +--------------------------+                    +--------------------------+
+                                                                                          |
+                                                                                          v
+                                                                         +------------------------------+
+                                                                         | Optional like batcher or     |
+                                                                         | approximate milestone writer |
+                                                                         +------------------------------+
+```
+
+The mental model is two pipelines. One pipeline builds keyword indexes from posts and likes. The other pipeline serves search by reading those indexes fast, usually from cache or Redis.
+
+If you were drawing this in an interview, I would start with just User, API Gateway, Search Service, Ingestion Service, and Index Store. Then add cache, Kafka, like batching, and cold storage only if the interviewer pushes on scale or freshness trade-offs.
+
+
 ---
 
 <details open>

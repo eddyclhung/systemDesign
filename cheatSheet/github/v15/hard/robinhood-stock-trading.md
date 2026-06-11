@@ -11,6 +11,99 @@ Market data flows exchange → Kafka → Redis price cache. Order placement: cli
 
 > Idempotency key = no double trades on retry  |  Event sourcing: balance derived by replaying events  |  2-phase: reserve → confirm
 
+## Architecture diagram
+
+```
++-------------------+
+                          |   Mobile / Web    |
+                          |      Clients      |
+                          +---------+---------+
+                                    |
+                     HTTPS for API   |   SSE for live prices
+                                    |
+                           +--------v--------+
+                           |   Load Balancer  |
+                           |  sticky for SSE  |
+                           +---+----------+---+
+                               |          |
+                +--------------+          +----------------+
+                |                                        |
+       +--------v--------+                      +---------v---------+
+       |  Order Service  |                      |   Symbol Service  |
+       | create cancel   |                      | SSE subscriptions |
+       | list orders     |                      | fanout to clients |
+       +---+---------+---+                      +----+----------+---+
+           |         |                               |          |
+           |         |                               |          |
+           |         |                      subscribe by symbol |
+           |         |                               |          |
+           |         |                         +-----v----------v-----+
+           |         |                         |      Redis Pub Sub   |
+           |         |                         | channels per symbol  |
+           |         |                         +-----------+----------+
+           |         |                                     |
+           |         |                                     |
+           |   +-----v------------------+                  |
+           |   |  Order DB              |                  |
+           |   | relational sharded by  |                  |
+           |   | userId                 |                  |
+           |   +------------------------+                  |
+           |                                               |
+           |   +------------------------+                  |
+           +-->| ExternalOrderId KV     |<-----------------+
+               | externalOrderId ->     |        trade lookup
+               | (orderId, userId)      |                  |
+               +------------------------+                  |
+                                                           |
+                                                  +--------v---------+
+                                                  | Trade Processor  |
+                                                  | consumes exchange|
+                                                  | trade feed       |
+                                                  +--------+---------+
+                                                           |
+                              updates price cache          |
+                              publishes symbol updates     |
+                              updates order state          |
+                                                           |
+                                             +-------------v--------------+
+                                             |       Price Cache          |
+                                             | latest price per symbol    |
+                                             +-------------+--------------+
+                                                           |
+                                             initial snapshot for SSE
+                                                           |
+                                                           |
+                     outbound requests through small set of IPs
+                                                           |
+                                                   +-------v-------+
+                                                   | NAT Gateway   |
+                                                   | / Egress GW   |
+                                                   +-------+-------+
+                                                           |
+                                              sync place cancel APIs
+                                                           |
+                                              async trade feed / webhook
+                                                           |
+                                                   +-------v---------+
+                                                   |   Exchange      |
+                                                   | order API +     |
+                                                   | trade feed      |
+                                                   +-----------------+
+
+
+                    +-----------------------------+
+                    | Cleanup Worker              |
+                    | scans pending and           |
+                    | pending_cancel orders       |
+                    | reconciles with exchange    |
+                    +-----------------------------+
+```
+
+The key idea is that you split the system into two flows. One flow is fast live price distribution through Trade Processor -> Redis -> Symbol Service -> SSE clients. The other flow is consistent order handling through Order Service -> DB first -> Exchange -> reconcile state.
+
+If you draw this in an interview, you should call out three important choices. Use SSE for live prices, use a relational orders database partitioned by userId, and use a small egress layer so you do not open too many direct exchange connections.
+
+
 ---
 
 <details open>

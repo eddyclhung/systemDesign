@@ -11,6 +11,20 @@ Query logs aggregate nightly via MapReduce into frequency counts. A trie builder
 
 > Top-K cached at every prefix node  |  Weekly batch rebuild  |  CDN covers top 10K prefixes
 
+## Architecture diagram
+
+```
+[Query logs] --> [MapReduce] --> [Trie Builder] --> [Redis shards]
+                                              ^
+  [User keystroke] --> [Debounce] --> [API] --+--> [CDN hit?] --> return
+                                    | miss
+                                    v
+                              [Redis prefix lookup]
+```
+
+Say offline build + online lookup. CDN and debounce are the scaling story.
+
+
 ---
 
 <details open>

@@ -13,6 +13,97 @@ View events → Kafka → Flink aggregates per videoId using Count-Min Sketch fo
 
 > Count-Min Sketch = approx freq O(1) space  |  Watermark 1min for late events  |  Lambda: real-time ≈ accurate + batch = exact
 
+## Architecture diagram
+
+```
++----------------------+
+                        |   YouTube Clients    |
+                        +----------+-----------+
+                                   |
+                                   | watch events
+                                   v
+                        +----------------------+
+                        |  Video Serving System |
+                        +----------+-----------+
+                                   |
+                                   | publish ViewEvent(videoId, ts)
+                                   v
+                         +---------------------+
+                         |   Kafka ViewEvent   |
+                         | topic partitioned   |
+                         | by videoId          |
+                         +----+----+----+-----+
+                              |    |    |
+                consume       |    |    |       consume
+                              v    v    v
+                    +----------------------------------+
+                    |     Flink / Stream Aggregator    |
+                    |  watermark for late events       |
+                    |  minute or hour tumbling windows |
+                    |  count views per video           |
+                    +----------------+-----------------+
+                                     |
+                        batched aggregates per shard
+                                     |
+            +------------------------+------------------------+
+            |                        |                        |
+            v                        v                        v
+     +--------------+         +--------------+         +--------------+
+     | Views DB S1  |         | Views DB S2  |   ...   | Views DB SN  |
+     | shard by     |         | shard by     |         | shard by     |
+     | videoId      |         | videoId      |         | videoId      |
+     +------+-------+         +------+-------+         +------+-------+
+            |                        |                        |
+            | keep window tables     | keep window tables     |
+            |                        |                        |
+            |   - all_time           |   - last_hour          |
+            |   - last_day           |   - last_month         |
+            v                        v                        v
+     +---------------------------------------------------------------+
+     | indexed aggregate tables per shard                            |
+     | query top K locally on each shard                             |
+     +---------------------------+-----------------------------------+
+                                 |
+                                 | periodic fanout query
+                                 v
+                      +-------------------------------+
+                      | Top K Precompute Job / Cron   |
+                      | query each shard for local K  |
+                      | merge into global top K       |
+                      +---------------+---------------+
+                                      |
+                                      | write precomputed results
+                                      v
+                             +--------------------+
+                             | Redis Cache        |
+                             | top-k:last_hour    |
+                             | top-k:last_day     |
+                             | top-k:last_month   |
+                             | top-k:all_time     |
+                             +---------+----------+
+                                       |
+                                       v
+                          +----------------------------+
+                          | Top K API Service          |
+                          | GET /views/top-k?window&k  |
+                          +-------------+--------------+
+                                        |
+                                        v
+                              +------------------+
+                              | Load Balancer    |
+                              +--------+---------+
+                                       |
+                                       v
+                              +------------------+
+                              |     Clients      |
+                              +------------------+
+```
+
+If you are presenting this in an interview, the clean story is this. Kafka absorbs the firehose of view events. Flink batches and aggregates views by video for a time bucket. Sharded databases store pre-aggregated counts for each window. A precompute job pulls local top K from each shard, merges them, and writes the final answers into Redis. The API just reads from Redis, which is how you hit the tens of milliseconds latency target.
+
+If you want, I can also give you a simpler interview version with only 6 boxes so it is easier to draw under time pressure.
+
+
 ---
 
 <details open>
