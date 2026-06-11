@@ -3,8 +3,11 @@
 ## v15 (2026-06-11)
 
 ### GitHub view
-- `cheatSheet/github/` — Markdown per system + static HTML (works in GitHub file preview; interactive HTML uses JS)
-- `scripts/build_github_view.py` — regenerate after content edits
+- `cheatSheet/github/` — Markdown per system
+- `system_design_cheatsheet_v15_github.html` — pre-rendered cards (works in GitHub file preview)
+- `SystemDesign_Complete_v10_github.html` — v10 cards pre-rendered
+- `scripts/build_prerendered_html.py` — regenerate `*_github.html` after content edits
+- `.github/workflows/pages.yml` — GitHub Pages deploy (full JS interactivity when published)
 
 ### UX
 - Visible topbar search (was hidden)

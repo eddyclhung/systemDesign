@@ -4,7 +4,11 @@ Offline, self-contained HTML reference guides for system design interview prep. 
 
 **Start here:** [`cheatSheet/index.html`](cheatSheet/index.html)
 
-**View on GitHub (no JavaScript):** [`cheatSheet/github/README.md`](cheatSheet/github/README.md)
+**View on GitHub:** The interactive `.html` files **do not work** in GitHub's file preview (scripts are stripped). Use instead:
+- [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) — pre-rendered, works on GitHub
+- [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) — Markdown per system
+
+Enable **GitHub Pages** (Settings → Pages → GitHub Actions) for full interactivity at `https://<user>.github.io/<repo>/`.
 
 ```mermaid
 flowchart TB
@@ -45,7 +49,9 @@ flowchart TB
 | File | Description |
 |------|-------------|
 | [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10 or v15 |
-| [`cheatSheet/github/`](cheatSheet/github/) | **GitHub-viewable** Markdown + static HTML (no JS) |
+| [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) | **v15 for GitHub** — pre-rendered cards (works in repo preview) |
+| [`cheatSheet/SystemDesign_Complete_v10_github.html`](cheatSheet/SystemDesign_Complete_v10_github.html) | **v10 for GitHub** — pre-rendered system cards |
+| [`cheatSheet/github/`](cheatSheet/github/) | Markdown per system |
 | [`cheatSheet/SystemDesign_Complete_v10.html`](cheatSheet/SystemDesign_Complete_v10.html) | ByteByteGo Vol. 1 & 2 deep-dive + 26 system cards + cloud appendix |
 | [`cheatSheet/system_design_cheatsheet_v14.html`](cheatSheet/system_design_cheatsheet_v14.html) | Staff+ interview prep (v15 content) — 40 systems |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history |
@@ -64,7 +70,8 @@ Validate card data after edits:
 
 ```bash
 python3 scripts/validate_systems.py
-python3 scripts/build_github_view.py   # regenerate GitHub Markdown/static HTML
+python3 scripts/build_github_view.py      # regenerate Markdown
+python3 scripts/build_prerendered_html.py  # regenerate *_github.html
 ```
 
 ## Study paths
