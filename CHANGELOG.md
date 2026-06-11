@@ -2,6 +2,10 @@
 
 ## v15 (2026-06-11)
 
+### GitHub view
+- `cheatSheet/github/` — Markdown per system + static HTML (works in GitHub file preview; interactive HTML uses JS)
+- `scripts/build_github_view.py` — regenerate after content edits
+
 ### UX
 - Visible topbar search (was hidden)
 - Theme, collapsed sections, tab memory, and studied checkboxes persist via `localStorage`

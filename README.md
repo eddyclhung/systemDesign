@@ -4,6 +4,8 @@ Offline, self-contained HTML reference guides for system design interview prep. 
 
 **Start here:** [`cheatSheet/index.html`](cheatSheet/index.html)
 
+**View on GitHub (no JavaScript):** [`cheatSheet/github/README.md`](cheatSheet/github/README.md)
+
 ```mermaid
 flowchart TB
     subgraph repo["systemDesign"]
@@ -43,6 +45,7 @@ flowchart TB
 | File | Description |
 |------|-------------|
 | [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10 or v15 |
+| [`cheatSheet/github/`](cheatSheet/github/) | **GitHub-viewable** Markdown + static HTML (no JS) |
 | [`cheatSheet/SystemDesign_Complete_v10.html`](cheatSheet/SystemDesign_Complete_v10.html) | ByteByteGo Vol. 1 & 2 deep-dive + 26 system cards + cloud appendix |
 | [`cheatSheet/system_design_cheatsheet_v14.html`](cheatSheet/system_design_cheatsheet_v14.html) | Staff+ interview prep (v15 content) — 40 systems |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history |
@@ -61,6 +64,7 @@ Validate card data after edits:
 
 ```bash
 python3 scripts/validate_systems.py
+python3 scripts/build_github_view.py   # regenerate GitHub Markdown/static HTML
 ```
 
 ## Study paths
