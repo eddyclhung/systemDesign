@@ -142,6 +142,7 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
 .sec-hdr::after{content:'';flex:1;height:.5px;background:var(--bdr-ter)}
 /* grid */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,480px),1fr));gap:0;border-top:.5px solid var(--bdr-ter);border-left:.5px solid var(--bdr-ter)}
+body.system-list .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(480px * var(--content-zoom))),1fr))!important}
 @media(max-width:640px){.grid{grid-template-columns:1fr}}
 @media(min-width:641px) and (max-width:1199px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1200px) and (max-width:1799px){.grid{grid-template-columns:repeat(2,1fr)}}
