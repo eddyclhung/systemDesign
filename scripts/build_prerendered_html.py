@@ -387,7 +387,7 @@ GH_PAGES_CSS = """
 .gh-fallback summary{cursor:pointer;font-weight:500;font-size:12px}
 .gh-fallback .gh-panel-body{padding-top:8px;font-size:12.5px}
 html.js-enabled .gh-fallback{display:none}
-html.js-enabled .js-only{display:revert}
+html.js-enabled .js-only{display:block}
 html:not(.js-enabled) .js-only{display:none!important}
 .noscript-banner{background:var(--bg-warn);border:1px solid var(--bdr-warn);padding:10px 14px;margin:0 16px 12px;border-radius:var(--r);font-size:12px;line-height:1.5}
 """ + LADDER_CSS

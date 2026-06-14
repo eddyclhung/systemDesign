@@ -131,7 +131,7 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
   .panel:not(.on){display:none}
   .fw.db-section .db-fw-body{display:block!important}
   body.interview-mode .tab{display:none!important}
-  body.interview-mode .tab[data-tab="p"],body.interview-mode .tab[data-tab="k"],body.interview-mode .tab[data-tab="t"],body.interview-mode .tab[data-tab="d"],body.interview-mode .tab[data-tab="s"]{display:inline-block!important}
+  body.interview-mode .tab[data-tab="p"],body.interview-mode .tab[data-tab="k"],body.interview-mode .tab[data-tab="t"],body.interview-mode .tab[data-tab="d"],body.interview-mode .tab[data-tab="s"]{display:inline-flex!important}
 }
 /* section headers */
 .sec-hdr{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-ter);padding:20px 16px 8px;display:flex;align-items:center;gap:12px}
@@ -172,11 +172,17 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
 /* tags */
 .trow{padding:8px 14px;border-bottom:.5px solid var(--bdr-ter);display:flex;gap:4px;flex-wrap:wrap}
 .tag{font-size:10px;padding:2px 7px;border-radius:100px;background:var(--bg-sec);border:.5px solid var(--bdr-ter);color:var(--txt-sec)}
-/* tabs */
-.tabs{display:flex;border-bottom:.5px solid var(--bdr-ter);overflow-x:auto}
-.tab{padding:6px 9px;font-size:10.5px;font-weight:500;color:var(--txt-sec);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex-shrink:0;transition:all .1s}
+/* tabs — horizontal row under each card (wraps on narrow cards) */
+.js-tabs-wrap{display:flex;flex-direction:column;min-width:0;width:100%}
+.tabs{display:flex;flex-direction:row;flex-wrap:wrap;align-items:stretch;gap:0;padding:0 6px;border-bottom:.5px solid var(--bdr-ter);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.tab{display:inline-flex;align-items:center;padding:6px 8px;font-size:10.5px;font-weight:500;color:var(--txt-sec);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;flex:0 0 auto;transition:all .1s}
 .tab:hover{color:var(--txt-pri);background:var(--bg-sec)}
 .tab.on{color:var(--txt-pri);border-bottom-color:var(--txt-pri)}
+body.interview-mode .tabs .tab[data-tab="p"],
+body.interview-mode .tabs .tab[data-tab="k"],
+body.interview-mode .tabs .tab[data-tab="t"],
+body.interview-mode .tabs .tab[data-tab="d"],
+body.interview-mode .tabs .tab[data-tab="s"]{display:inline-flex!important}
 /* panels */
 .panel{display:none;padding:14px}
 .panel.on{display:block}
@@ -409,7 +415,7 @@ table.db-table tr:hover td { background: var(--bg-sec); }
 .gh-fallback summary{cursor:pointer;font-weight:500;font-size:12px}
 .gh-fallback .gh-panel-body{padding-top:8px;font-size:12.5px}
 html.js-enabled .gh-fallback{display:none}
-html.js-enabled .js-only{display:revert}
+html.js-enabled .js-only{display:block}
 html:not(.js-enabled) .js-only{display:none!important}
 .noscript-banner{background:var(--bg-warn);border:1px solid var(--bdr-warn);padding:10px 14px;margin:0 16px 12px;border-radius:var(--r);font-size:12px;line-height:1.5}
 
@@ -502,6 +508,7 @@ html:not(.js-enabled) .js-only{display:none!important}
     <a class="sb-sys sb-h" data-diff="h" data-idx="36" onclick="navTo(36,event)">Google Maps</a>
     <a class="sb-sys sb-h" data-diff="h" data-idx="37" onclick="navTo(37,event)">Distributed email (Gmail)</a>
     <a class="sb-sys sb-h" data-diff="h" data-idx="39" onclick="navTo(39,event)">Digital wallet (Apple Pay)</a>
+
 
 
 
@@ -6146,6 +6153,7 @@ function buildCard(c,idx){
 <div class="diag">${buildDiag(c.diag,c.dn)}</div>
 <div class="narr"><div class="nlbl">Data flow</div><div class="ntxt">${c.na}</div></div>
 <div class="trow">${c.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+<div class="js-tabs-wrap js-only">
 <div class="tabs" role="tablist">${tabs}</div>
 <div id="${id}-p" class="panel on" role="tabpanel">${c.q1.split('\n\n').map(p=>`<p>${p.trim()}</p>`).join('')}</div>
 <div id="${id}-f" class="panel" role="tabpanel">${buildFailures(c.v13)}</div>
@@ -6159,6 +6167,7 @@ function buildCard(c,idx){
 <div id="${id}-d" class="panel" role="tabpanel">${buildDeep(c.q5||'')}</div>
 <div id="${id}-s" class="panel" role="tabpanel">${buildScript(c.q6||[],idx)}</div>
 <div id="${id}-a" class="panel" role="tabpanel">${buildArch(c.arch)}</div>
+</div>
 </div>`;
 }
 function buildArch(arch){
