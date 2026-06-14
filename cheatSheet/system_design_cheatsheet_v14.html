@@ -70,7 +70,8 @@ body{font-family:var(--font);color:var(--txt-pri);background:var(--bg-ter);-webk
 .sb-overlay.open{display:block}
 
 /* ── Main scroll area ── */
-.main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;container-type:inline-size;container-name:main}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;container-type:inline-size;container-name:main;scroll-padding-top:52px}
+.fw[id],.db-fw-hdr[id],.sec-hdr,.est-ws{scroll-margin-top:52px}
 
 /* ── Topbar ── */
 .topbar{position:sticky;top:0;z-index:50;background:var(--bg-pri);border-bottom:.5px solid var(--bdr-ter);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
@@ -450,12 +451,15 @@ html:not(.js-enabled) .js-only{display:none!important}
     <button class="sb-btn sb-filt hard" onclick="filt('h',this)">Hard ×18</button>
 
     <div class="sb-section">Jump to</div>
-    <a class="sb-nav" href="#ref-framework" onclick="scrollToEl(document.getElementById('ref-framework'),event)">📐 Framework</a>
-    <a class="sb-nav" href="#ref-db" onclick="scrollToEl(document.getElementById('ref-db'),event)">🗄 DB chooser</a>
-    <a class="sb-nav" href="#ref-cap" onclick="scrollToEl(document.getElementById('ref-cap'),event)">⚖️ CAP theorem</a>
-    <a class="sb-nav" href="#ref-proto" onclick="scrollToEl(document.getElementById('ref-proto'),event)">📡 Protocols</a>
-    <a class="sb-nav" href="#ref-cloud" onclick="scrollToEl(document.getElementById('ref-cloud'),event)">☁️ Cloud</a>
-    <a class="sb-nav" href="#ref-qf" onclick="scrollToEl(document.getElementById('ref-qf'),event)">⚡ Quick-fire</a>
+    <a class="sb-nav" href="#ref-framework" onclick="jumpTo('ref-framework',event)">📐 Framework</a>
+    <a class="sb-nav" href="#est-worksheet" onclick="jumpTo('est-worksheet',event)">🧮 Estimation</a>
+    <a class="sb-nav" href="#ref-db" onclick="jumpTo('ref-db',event)">🗄 DB chooser</a>
+    <a class="sb-nav" href="#ref-cap" onclick="jumpTo('ref-cap',event)">⚖️ CAP theorem</a>
+    <a class="sb-nav" href="#ref-proto" onclick="jumpTo('ref-proto',event)">📡 Protocols</a>
+    <a class="sb-nav" href="#ref-qf" onclick="jumpTo('ref-qf',event)">⚡ Quick-fire</a>
+    <a class="sb-nav" href="#ref-consistency" onclick="jumpTo('ref-consistency',event)">🔁 Consistency</a>
+    <a class="sb-nav" href="#ref-cloud" onclick="jumpTo('ref-cloud',event)">☁️ Cloud</a>
+    <a class="sb-nav" href="#se" onclick="jumpTo('se',event)">📋 System cards</a>
 
     <div id="sb-sys-list">
     <div class="sb-section">Easy</div>
@@ -1021,7 +1025,7 @@ Name both explicitly — "POST /messages over REST, delivery notifications over 
     <p style="font-size:11px;color:var(--txt-ter);margin-top:10px">+60 more: thundering herd, metastable failure, poison messages, sagas, rate limits, payments → <a href="interview-quick-fire.html" style="color:var(--txt-info)">interview-quick-fire.html</a></p>
   </div>
 
-  <div class="db-fw-hdr" onclick="toggleDb(this)">
+  <div class="db-fw-hdr" id="ref-consistency" onclick="toggleDb(this)">
     <span class="db-fw-lbl">🔁 Consistency patterns — name these in deep dives</span>
     <span class="db-fw-arrow">▶</span>
   </div>
@@ -10921,10 +10925,15 @@ function buildEvolution(v){
   return h;
 }
 function getMain(){return document.querySelector('.main');}
+function mainScrollOffset(){
+  const tb=document.querySelector('.topbar');
+  return Math.ceil(tb?.getBoundingClientRect().height||44)+10;
+}
 function scrollMainTo(el,gap){
   const main=getMain();
   if(!main||!el)return;
-  const top=main.scrollTop+(el.getBoundingClientRect().top-main.getBoundingClientRect().top)-(gap==null?8:gap);
+  const gapPx=gap==null?mainScrollOffset():gap;
+  const top=main.scrollTop+(el.getBoundingClientRect().top-main.getBoundingClientRect().top)-gapPx;
   main.scrollTo({top:Math.max(0,top),behavior:'smooth'});
 }
 function ensureMainScrollSync(){
@@ -10949,7 +10958,7 @@ function navTo(idx, e, tab){
     if(btn) sw(btn,'c'+idx,tab,idx);
   }
   setTimeout(()=>{
-    scrollMainTo(card,12);
+    scrollMainTo(card,mainScrollOffset());
     card.classList.add('card-flash');
     setTimeout(()=>card.classList.remove('card-flash'), 800);
   }, 50);
@@ -11053,20 +11062,37 @@ function toggleSidebar(){
   tog.textContent=sb.classList.contains('open')?'✕':'☰';
 }
 function openDbPanel(hdr){
-  if(!hdr)return;
+  if(!hdr)return false;
   const body=hdr.nextElementSibling;
   if(body&&body.classList.contains('db-fw-body')&&!body.classList.contains('open')){
     body.classList.add('open');
     const arrow=hdr.querySelector('.db-fw-arrow');
     if(arrow) arrow.classList.add('open');
+    return true;
   }
+  return false;
+}
+function jumpScrollTarget(el){
+  if(!el)return el;
+  if(el.id==='ref-framework') return el.querySelector('.fwt')||el;
+  if(el.id==='ref-db'||el.id==='ref-quickref') return el.querySelector('.db-section-title')||el;
+  return el;
+}
+function jumpTo(id,e){
+  scrollToEl(document.getElementById(id),e);
 }
 function scrollToEl(el,e){
   if(e)e.preventDefault();
   if(!el)return;
-  if(el.classList.contains('db-fw-hdr')) openDbPanel(el);
-  else if(el.id==='ref-db') openDbPanel(el.querySelector('.db-fw-hdr'));
-  requestAnimationFrame(()=>scrollMainTo(el,8));
+  let reflow=false;
+  if(el.classList.contains('db-fw-hdr')) reflow=openDbPanel(el);
+  else if(el.id==='ref-db') reflow=openDbPanel(el.querySelector('.db-fw-hdr'));
+  const target=jumpScrollTarget(el);
+  const doScroll=()=>scrollMainTo(target,mainScrollOffset());
+  if(reflow) setTimeout(doScroll,80);
+  else requestAnimationFrame(doScroll);
+  const hash=el.id||el.getAttribute('id');
+  if(hash) history.replaceState(null,'','#'+hash);
   if(window.innerWidth<=768)toggleSidebar();
 }
 function toggleTheme(){
@@ -11121,7 +11147,7 @@ function scrollToFiltTarget(){
     const card=main.querySelector('.card:not(.hidden)');
     if(card) target=card;
   }
-  if(target) requestAnimationFrame(()=>scrollMainTo(target,8));
+  if(target) requestAnimationFrame(()=>scrollMainTo(target,mainScrollOffset()));
 }
 function filt(d,btn){
   af=d;
@@ -11221,6 +11247,9 @@ function initApp(){
   if(hash){
     let m=hash.match(/^card-(\d+)(?:-([a-z]))?$/);
     if(m) navTo(parseInt(m[1],10),null,m[2]);
+    else if(document.getElementById(hash)){
+      setTimeout(()=>scrollToEl(document.getElementById(hash)),120);
+    }
     else{
       const idx=C.findIndex(c=>slugify(c.title)===hash);
       if(idx>=0) navTo(idx);
