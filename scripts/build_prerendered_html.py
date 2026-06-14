@@ -8,6 +8,7 @@ and produces a version suitable for GitHub Pages (JS still enhances UX).
 
 from __future__ import annotations
 
+import argparse
 import html
 import os
 import re
@@ -493,6 +494,15 @@ def patch_v10_cards(html_text: str) -> str:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Build pre-rendered GitHub/Pages HTML")
+    parser.add_argument(
+        "--pages-deploy",
+        action="store_true",
+        help="Inject pre-rendered cards into v14.html for GitHub Pages artifact",
+    )
+    args = parser.parse_args()
+    pages_deploy = args.pages_deploy or os.environ.get("BUILD_PAGES_DEPLOY") == "1"
+
     v15 = SRC.read_text(encoding="utf-8")
     blocks = split_v15_systems(v15)
     systems = [parse_v15_system(b, i) for i, b in enumerate(blocks)]
@@ -502,7 +512,7 @@ def main():
     print(f"Wrote {OUT.relative_to(ROOT)}")
 
     # CI/Pages only: inject pre-rendered cards into v14 for deploy (git source stays lean).
-    if os.environ.get("BUILD_PAGES_DEPLOY") == "1" or os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
+    if pages_deploy:
         v14_pages = patch_v14_for_pages(v15, systems)
         SRC.write_text(v14_pages, encoding="utf-8")
         print(f"Wrote Pages edition {SRC.relative_to(ROOT)} ({len(systems)} cards injected)")

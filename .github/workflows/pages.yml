@@ -21,11 +21,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build GitHub-compatible HTML + Markdown
-        env:
-          BUILD_PAGES_DEPLOY: "1"
         run: |
-          python3 scripts/build_prerendered_html.py
+          python3 scripts/build_prerendered_html.py --pages-deploy
           python3 scripts/build_github_view.py
+          python3 -c "import re,sys; t=open('cheatSheet/system_design_cheatsheet_v14.html').read(); n=len(re.findall(r'id=\"card-\d+\"', t)); print(f'v14 card check: {n}'); sys.exit(0 if n==40 else 1)"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
