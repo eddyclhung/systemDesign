@@ -396,11 +396,13 @@ def inject_prerendered_cards(text: str, systems: list[dict]) -> str:
     for s in systems:
         by_diff[s["diff"]].append(render_card_html(s))
 
+    grid_end = {"ge": '<div id="sm"', "gm": '<div id="sh"', "gh": "<footer"}
     for _diff, gid in [("e", "ge"), ("m", "gm"), ("h", "gh")]:
         cards = "\n".join(by_diff[_diff])
+        end = re.escape(grid_end[gid])
         text = re.sub(
-            rf'(<div class="grid" id="{gid}">)[\s\S]*?(</div>)',
-            rf"\1\n{cards}\n\2",
+            rf'<div class="grid" id="{gid}">[\s\S]*?(?={end})',
+            f'<div class="grid" id="{gid}">\n{cards}\n</div>\n',
             text,
             count=1,
         )
