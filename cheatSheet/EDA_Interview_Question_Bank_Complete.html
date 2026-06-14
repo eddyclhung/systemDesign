@@ -75,10 +75,29 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px
 .fqq{font-size:13px;color:var(--tx2);flex:1;transition:color .12s}
 .fqchev{color:var(--tx3);flex-shrink:0;font-size:12px;transition:transform .15s;padding-top:3px}
 .fqans{padding:8px 12px 10px 24px;font-size:13px;color:var(--tx2);line-height:1.75;background:var(--surf3);border-radius:var(--r);margin:2px 0 6px 18px;border-left:2px solid var(--acc)}
-.diag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:8px}
-.diag-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden}
-.diag-title{font-size:11px;color:var(--tx2);padding:7px 10px;border-bottom:1px solid var(--bdr);font-weight:500}
-.diag-card svg{width:100%;height:auto;display:block}
+.diag-grid{display:flex;flex-direction:column;gap:12px;margin-top:8px}
+.diag-card{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.diag-card:hover{border-color:var(--acc-bdr);box-shadow:0 0 0 1px var(--acc-bg)}
+.diag-title{font-size:11px;color:var(--tx2);padding:7px 10px;border-bottom:1px solid var(--bdr);font-weight:500;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.diag-hint{font-size:10px;color:var(--tx3);font-weight:400;flex-shrink:0}
+.diag-svg{padding:6px 8px 10px}
+.diag-card svg{width:100%;height:auto;display:block;min-height:140px}
+.diag-lb{display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;padding:16px}
+.diag-lb.open{display:flex}
+.diag-lb-backdrop{position:absolute;inset:0;background:rgba(1,4,9,.82);backdrop-filter:blur(4px)}
+.diag-lb-panel{position:relative;z-index:1;width:min(96vw,1100px);max-height:92vh;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.diag-lb-hdr{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr)}
+.diag-lb-title{font-size:13px;font-weight:500;color:var(--tx)}
+.diag-lb-close{background:var(--surf3);border:1px solid var(--bdr);border-radius:var(--r);color:var(--tx2);width:32px;height:32px;cursor:pointer;font-size:14px;line-height:1}
+.diag-lb-close:hover{color:var(--tx);border-color:var(--bdr2)}
+.diag-lb-toolbar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--bdr);flex-wrap:wrap}
+.diag-lb-hint{font-size:11px;color:var(--tx3);flex:1;min-width:140px}
+.zbtn{background:var(--surf3);border:1px solid var(--bdr);border-radius:6px;color:var(--tx2);font-size:12px;padding:5px 10px;cursor:pointer;font-family:var(--sans)}
+.zbtn:hover{color:var(--tx);border-color:var(--bdr2)}
+.diag-lb-viewport{flex:1;min-height:280px;max-height:calc(92vh - 120px);overflow:hidden;cursor:grab;background:var(--surf2);touch-action:none}
+.diag-lb-viewport.dragging{cursor:grabbing}
+.diag-lb-inner{transform-origin:center center;display:flex;align-items:center;justify-content:center;min-height:100%;padding:20px;will-change:transform}
+.diag-lb-inner svg{width:100%;max-width:min(100%,980px);height:auto;display:block}
 .bact{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--bdr)}
 .abtn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-family:var(--sans);padding:6px 12px;border-radius:var(--r);cursor:pointer;border:1px solid;transition:all .12s}
 .abtn-g{background:var(--grn-bg);color:var(--grn);border-color:var(--grn-bdr)}.abtn-g:hover{background:rgba(63,185,80,.18)}
@@ -121,6 +140,24 @@ body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14px
     </div>
     <div class="ql" id="ql"></div>
   </main>
+</div>
+<div id="diag-lb" class="diag-lb" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="diag-lb-title">
+  <div class="diag-lb-backdrop"></div>
+  <div class="diag-lb-panel">
+    <div class="diag-lb-hdr">
+      <span id="diag-lb-title" class="diag-lb-title"></span>
+      <button type="button" class="diag-lb-close" id="diag-lb-close" aria-label="Close diagram">&#10005;</button>
+    </div>
+    <div class="diag-lb-toolbar">
+      <span class="diag-lb-hint">Scroll to zoom &middot; drag to pan &middot; double-click to reset &middot; Esc to close</span>
+      <button type="button" class="zbtn" data-lb-zoom="-">&minus;</button>
+      <button type="button" class="zbtn" data-lb-zoom="0">Fit</button>
+      <button type="button" class="zbtn" data-lb-zoom="+">+</button>
+    </div>
+    <div class="diag-lb-viewport" id="diag-lb-vp">
+      <div class="diag-lb-inner" id="diag-lb-inner"></div>
+    </div>
+  </div>
 </div>
 <script>
 var CM={"delivery": {"label": "Delivery semantics", "dot": "#2F81F7", "isNew": false}, "ordering": {"label": "Ordering", "dot": "#D29922", "isNew": false}, "failure": {"label": "Failure handling", "dot": "#F85149", "isNew": false}, "kafka": {"label": "Kafka internals", "dot": "#3FB950", "isNew": false}, "patterns": {"label": "Patterns", "dot": "#8B949E", "isNew": false}, "backpressure": {"label": "Backpressure", "dot": "#E3B341", "isNew": true}, "schema": {"label": "Schema evolution", "dot": "#BC8CFF", "isNew": true}, "observability": {"label": "Observability", "dot": "#39D353", "isNew": true}, "async": {"label": "Async vs sync", "dot": "#FF7B72", "isNew": true}, "realworld": {"label": "Real-world failures", "dot": "#F85149", "isNew": true}};
@@ -228,7 +265,7 @@ function rl(){
       if(diags.length){
         h+='<div class="blbl">Visual diagrams</div><div class="diag-grid">';
         diags.forEach(function(d){
-          h+='<div class="diag-card"><div class="diag-title">'+d.title+'</div>'+d.svg+'</div>';
+          h+='<div class="diag-card"><div class="diag-title"><span class="diag-name">'+d.title+'</span><span class="diag-hint">Click to enlarge</span></div><div class="diag-svg">'+d.svg+'</div></div>';
         });
         h+='</div>';
       }
@@ -240,18 +277,102 @@ function rl(){
     h+='</div>';
   });
   document.getElementById('ql').innerHTML=h;
+  bindDiagCards();
+}
+
+var lbZ=1,lbPx=0,lbPy=0,lbOpen=false;
+
+function applyLb(){
+  var el=document.getElementById('diag-lb-inner');
+  if(el) el.style.transform='translate('+lbPx+'px,'+lbPy+'px) scale('+lbZ+')';
+}
+
+function setLbZoom(z,reset){
+  lbZ=Math.min(3,Math.max(0.4,z));
+  if(reset){lbPx=0;lbPy=0;}
+  applyLb();
+}
+
+function resetLb(){setLbZoom(1,true);}
+
+function openDiagLb(title,svg){
+  document.getElementById('diag-lb-title').textContent=title;
+  document.getElementById('diag-lb-inner').innerHTML=svg;
+  document.getElementById('diag-lb').classList.add('open');
+  document.getElementById('diag-lb').setAttribute('aria-hidden','false');
+  document.body.style.overflow='hidden';
+  lbOpen=true;
+  setLbZoom(1.35,true);
+}
+
+function closeDiagLb(){
+  document.getElementById('diag-lb').classList.remove('open');
+  document.getElementById('diag-lb').setAttribute('aria-hidden','true');
+  document.body.style.overflow='';
+  lbOpen=false;
+  document.getElementById('diag-lb-inner').innerHTML='';
+}
+
+function bindDiagCards(){
+  document.querySelectorAll('.diag-card').forEach(function(card){
+    if(card.dataset.bound) return;
+    card.dataset.bound='1';
+    card.setAttribute('role','button');
+    card.setAttribute('tabindex','0');
+    card.addEventListener('click',function(){
+      var name=card.querySelector('.diag-name');
+      var svg=card.querySelector('.diag-svg');
+      if(svg) openDiagLb(name?name.textContent:'Diagram',svg.innerHTML);
+    });
+    card.addEventListener('keydown',function(e){
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();card.click();}
+    });
+  });
+}
+
+function setupLb(){
+  document.getElementById('diag-lb-close').onclick=closeDiagLb;
+  document.querySelector('.diag-lb-backdrop').onclick=closeDiagLb;
+  document.querySelectorAll('[data-lb-zoom]').forEach(function(btn){
+    btn.onclick=function(){
+      var d=btn.getAttribute('data-lb-zoom');
+      if(d==='+') setLbZoom(lbZ+0.2);
+      else if(d==='-') setLbZoom(lbZ-0.2);
+      else resetLb();
+    };
+  });
+  var vp=document.getElementById('diag-lb-vp');
+  var drag=false,sx,sy,px,py;
+  vp.addEventListener('wheel',function(e){
+    e.preventDefault();
+    setLbZoom(lbZ+(e.deltaY<0?0.12:-0.12));
+  },{passive:false});
+  vp.addEventListener('mousedown',function(e){
+    if(e.button!==0) return;
+    drag=true;sx=e.clientX;sy=e.clientY;px=lbPx;py=lbPy;
+    vp.classList.add('dragging');
+  });
+  window.addEventListener('mousemove',function(e){
+    if(!drag) return;
+    lbPx=px+(e.clientX-sx);lbPy=py+(e.clientY-sy);
+    applyLb();
+  });
+  window.addEventListener('mouseup',function(){drag=false;vp.classList.remove('dragging');});
+  vp.addEventListener('dblclick',resetLb);
 }
 
 document.getElementById('srch').addEventListener('input',rl);
 document.addEventListener('keydown',function(e){
   if(e.target.tagName==='INPUT')return;
   if(e.key==='/'||e.key==='f'){e.preventDefault();document.getElementById('srch').focus();}
-  if(e.key==='Escape'){document.getElementById('srch').value='';rl();}
+  if(e.key==='Escape'){if(lbOpen){closeDiagLb();return;}document.getElementById('srch').value='';rl();}
+  if(lbOpen&&(e.key==='+'||e.key==='=')){e.preventDefault();setLbZoom(lbZ+0.2);}
+  if(lbOpen&&e.key==='-'){e.preventDefault();setLbZoom(lbZ-0.2);}
   if(e.key==='h'||e.key==='H')tho();
   if(e.key==='r'||e.key==='R')thr();
 });
 
-bsb();rl();
+setupLb();bsb();rl();
 </script>
 </body>
 </html>
