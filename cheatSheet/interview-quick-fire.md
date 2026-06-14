@@ -24,6 +24,8 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 
 
+
+
 ## Severity legend
 
 | Badge | Level | When interviewers probe here |
@@ -61,10 +63,10 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 | | | |
 |---|---|---|
-| [Reads & caching](#reads--caching) | [Writes & throughput](#writes--throughput) | [Availability & resilience](#availability--resilience) |
-| [Consistency & correctness](#consistency--correctness) | [Fan-out & real-time](#fan-out--real-time) | [Storage & media](#storage--media) |
-| [Messaging & async](#messaging--async) | [Security & abuse](#security--abuse) | [Observability & ops](#observability--ops) |
-| [Geo & search](#geo--search) | [Money & transactions](#money--transactions) | [Quick decision shortcuts](#quick-decision-shortcuts) |
+| [Availability & resilience](#availability--resilience) | [Reads & caching](#reads--caching) | [Writes & throughput](#writes--throughput) |
+| [Consistency & correctness](#consistency--correctness) | [Money & transactions](#money--transactions) | [Fan-out & real-time](#fan-out--real-time) |
+| [Messaging & async](#messaging--async) | [Storage & media](#storage--media) | [Security & abuse](#security--abuse) |
+| [Geo & search](#geo--search) | [Observability & ops](#observability--ops) | [Practice drill](#practice-drill) |
 
 **Visual archetypes** *(17 diagrams → 70+ patterns)*
 
@@ -580,7 +582,6 @@ flowchart TD
 > [!CAUTION]
 > **🔴 Critical** — Outage / data-loss risk — probe failure modes first
 
-
 ### 🔴 Thundering herd
 
 > [!CAUTION]
@@ -819,6 +820,108 @@ flowchart TD
 
 📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm) *(draw A→B→A cycle; break with queue)*
 
+## Availability & resilience
+
+> [!WARNING]
+> **🟠 High** — Resilience under stress — name degraded mode + recovery
+
+### 🟠 Handle traffic spikes
+
+> [!CAUTION]
+> **🔴 Weak** — Autoscale app servers; the DB will keep up.
+>
+> [!WARNING]
+> **🟡 Strong** — **Stateless** app tier behind LB + **autoscale** on CPU/RPS/queue depth. **Absorb burst** in Kafka/SQS. **Circuit breakers** on downstreams. **Rate limit** at edge before origin melts.
+>
+> [!TIP]
+> **🟢 Staff+** — Autoscale lags minutes — need buffer (queue) or pre-warming for known events. Breakers cause errors for edge cases during recovery. Example: Shopify Black Friday — checkout writes queued; read path scaled horizontally. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Autoscale lags minutes — need buffer (queue) or pre-warming for known events. Breakers cause errors for edge cases during recovery.
+
+**Example:** *Shopify Black Friday — checkout writes queued; read path scaled horizontally.*
+
+### 🟠 Eliminate single point of failure
+
+> [!CAUTION]
+> **🔴 Weak** — Run two of everything in one AZ.
+>
+> [!WARNING]
+> **🟡 Strong** — Redundancy at **every** tier: 2+ LBs (anycast or DNS failover), N app instances, DB **primary + sync replica**, Redis **primary + replica**, multi-AZ. **Health checks** remove unhealthy targets; **chaos drills** prove it works.
+>
+> [!TIP]
+> **🟢 Staff+** — Cost doubles (or more). Split-brain risk if failover automation wrong. Complexity of active-active vs active-passive. Example: RDS Multi-AZ — sync standby promotion on primary failure. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Cost doubles (or more). Split-brain risk if failover automation wrong. Complexity of active-active vs active-passive.
+
+**Example:** *RDS Multi-AZ — sync standby promotion on primary failure.*
+
+### 🟠 DB primary fails
+
+> [!CAUTION]
+> **🔴 Weak** — Manual failover when someone pages you.
+>
+> [!WARNING]
+> **🟡 Strong** — Automated **failover** to sync replica (Orchestrator, Patroni, RDS Multi-AZ). Apps use **DNS/connection string** that updates or **proxy** (PgBouncer, RDS Proxy). **Retry with backoff** on transient connection errors.
+>
+> [!TIP]
+> **🟢 Staff+** — Failover takes 15–60s — in-flight transactions fail. Sync replica lag = data loss window if async (unacceptable for money). Example: Payments — sync replication only; accept unavailable during AZ failure, not wrong balance. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Failover takes 15–60s — in-flight transactions fail. Sync replica lag = data loss window if async (unacceptable for money).
+
+**Example:** *Payments — sync replication only; accept unavailable during AZ failure, not wrong balance.*
+
+### 🟠 Cascading failure
+
+> [!CAUTION]
+> **🔴 Weak** — Retry until downstream recovers.
+>
+> [!WARNING]
+> **🟡 Strong** — **Timeouts** < client deadline everywhere. **Bulkheads** (separate pools for critical vs batch). **Circuit breakers** stop calling sick deps. **Load shed** non-critical endpoints first (recommendations off, core checkout on).
+>
+> [!TIP]
+> **🟢 Staff+** — Shedding angers users on deprioritized features. Tight timeouts cause false failures on slow but healthy deps — tune per dependency. Example: Netflix Hystrix-era pattern — fallback static list when recommendation service down. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Shedding angers users on deprioritized features. Tight timeouts cause false failures on slow but healthy deps — tune per dependency.
+
+**Example:** *Netflix Hystrix-era pattern — fallback static list when recommendation service down.*
+
+📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm)
+
+### 🟠 Regional outage
+
+> [!CAUTION]
+> **🔴 Weak** — Multi-region active-active from day one.
+>
+> [!WARNING]
+> **🟡 Strong** — **Multi-region** deployment with GeoDNS failover. Define **RPO/RTO** per service. **Active-passive** for strong consistency workloads; **active-active** only with conflict resolution story.
+>
+> [!TIP]
+> **🟢 Staff+** — Active-active cross-region writes need CRDTs, last-write-wins, or partitioned tenants. Failover drills required — DNS TTL stalls traffic shift. Example: S3 cross-region replication for media; API active-passive with Route53 health checks. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Active-active cross-region writes need CRDTs, last-write-wins, or partitioned tenants. Failover drills required — DNS TTL stalls traffic shift.
+
+**Example:** *S3 cross-region replication for media; API active-passive with Route53 health checks.*
+
+### 🟠 Zero-downtime deploy
+
+> [!CAUTION]
+> **🔴 Weak** — Rolling restart — users won't notice brief errors.
+>
+> [!WARNING]
+> **🟡 Strong** — **Rolling deploy** behind LB (drain connections). **Readiness vs liveness** probes. **Feature flags** for risky code paths. **Blue-green** or **canary** (1% traffic) with automatic rollback on error budget burn.
+>
+> [!TIP]
+> **🟢 Staff+** — Two versions running during rollout — schema must be backward compatible. Canary needs traffic routing infra. Example: Kubernetes rolling update `maxUnavailable: 0` + PDB. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Two versions running during rollout — schema must be backward compatible. Canary needs traffic routing infra.
+
+**Example:** *Kubernetes rolling update `maxUnavailable: 0` + PDB.*
+
+## Reads & caching
+
+> [!TIP]
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
+
 ### 🟢 Reduce DB read load
 
 > [!CAUTION]
@@ -930,6 +1033,11 @@ flowchart TD
 
 **Example:** *Google Suggest — precomputed trie shards + aggressive CDN.*
 
+## Writes & throughput
+
+> [!TIP]
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
+
 ### 🟢 Scale writes past single DB
 
 > [!CAUTION]
@@ -1026,97 +1134,10 @@ flowchart TD
 
 **Example:** *Twitter Snowflake — roughly time-ordered tweets without central DB.*
 
-### 🟠 Handle traffic spikes
+## Consistency & correctness
 
-> [!CAUTION]
-> **🔴 Weak** — Autoscale app servers; the DB will keep up.
->
-> [!WARNING]
-> **🟡 Strong** — **Stateless** app tier behind LB + **autoscale** on CPU/RPS/queue depth. **Absorb burst** in Kafka/SQS. **Circuit breakers** on downstreams. **Rate limit** at edge before origin melts.
->
-> [!TIP]
-> **🟢 Staff+** — Autoscale lags minutes — need buffer (queue) or pre-warming for known events. Breakers cause errors for edge cases during recovery. Example: Shopify Black Friday — checkout writes queued; read path scaled horizontally. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Autoscale lags minutes — need buffer (queue) or pre-warming for known events. Breakers cause errors for edge cases during recovery.
-
-**Example:** *Shopify Black Friday — checkout writes queued; read path scaled horizontally.*
-
-### 🟠 Eliminate single point of failure
-
-> [!CAUTION]
-> **🔴 Weak** — Run two of everything in one AZ.
->
-> [!WARNING]
-> **🟡 Strong** — Redundancy at **every** tier: 2+ LBs (anycast or DNS failover), N app instances, DB **primary + sync replica**, Redis **primary + replica**, multi-AZ. **Health checks** remove unhealthy targets; **chaos drills** prove it works.
->
-> [!TIP]
-> **🟢 Staff+** — Cost doubles (or more). Split-brain risk if failover automation wrong. Complexity of active-active vs active-passive. Example: RDS Multi-AZ — sync standby promotion on primary failure. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Cost doubles (or more). Split-brain risk if failover automation wrong. Complexity of active-active vs active-passive.
-
-**Example:** *RDS Multi-AZ — sync standby promotion on primary failure.*
-
-### 🟠 DB primary fails
-
-> [!CAUTION]
-> **🔴 Weak** — Manual failover when someone pages you.
->
-> [!WARNING]
-> **🟡 Strong** — Automated **failover** to sync replica (Orchestrator, Patroni, RDS Multi-AZ). Apps use **DNS/connection string** that updates or **proxy** (PgBouncer, RDS Proxy). **Retry with backoff** on transient connection errors.
->
-> [!TIP]
-> **🟢 Staff+** — Failover takes 15–60s — in-flight transactions fail. Sync replica lag = data loss window if async (unacceptable for money). Example: Payments — sync replication only; accept unavailable during AZ failure, not wrong balance. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Failover takes 15–60s — in-flight transactions fail. Sync replica lag = data loss window if async (unacceptable for money).
-
-**Example:** *Payments — sync replication only; accept unavailable during AZ failure, not wrong balance.*
-
-### 🟠 Cascading failure
-
-> [!CAUTION]
-> **🔴 Weak** — Retry until downstream recovers.
->
-> [!WARNING]
-> **🟡 Strong** — **Timeouts** < client deadline everywhere. **Bulkheads** (separate pools for critical vs batch). **Circuit breakers** stop calling sick deps. **Load shed** non-critical endpoints first (recommendations off, core checkout on).
->
-> [!TIP]
-> **🟢 Staff+** — Shedding angers users on deprioritized features. Tight timeouts cause false failures on slow but healthy deps — tune per dependency. Example: Netflix Hystrix-era pattern — fallback static list when recommendation service down. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Shedding angers users on deprioritized features. Tight timeouts cause false failures on slow but healthy deps — tune per dependency.
-
-**Example:** *Netflix Hystrix-era pattern — fallback static list when recommendation service down.*
-
-📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm)
-
-### 🟠 Regional outage
-
-> [!CAUTION]
-> **🔴 Weak** — Multi-region active-active from day one.
->
-> [!WARNING]
-> **🟡 Strong** — **Multi-region** deployment with GeoDNS failover. Define **RPO/RTO** per service. **Active-passive** for strong consistency workloads; **active-active** only with conflict resolution story.
->
-> [!TIP]
-> **🟢 Staff+** — Active-active cross-region writes need CRDTs, last-write-wins, or partitioned tenants. Failover drills required — DNS TTL stalls traffic shift. Example: S3 cross-region replication for media; API active-passive with Route53 health checks. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Active-active cross-region writes need CRDTs, last-write-wins, or partitioned tenants. Failover drills required — DNS TTL stalls traffic shift.
-
-**Example:** *S3 cross-region replication for media; API active-passive with Route53 health checks.*
-
-### 🟠 Zero-downtime deploy
-
-> [!CAUTION]
-> **🔴 Weak** — Rolling restart — users won't notice brief errors.
->
-> [!WARNING]
-> **🟡 Strong** — **Rolling deploy** behind LB (drain connections). **Readiness vs liveness** probes. **Feature flags** for risky code paths. **Blue-green** or **canary** (1% traffic) with automatic rollback on error budget burn.
->
-> [!TIP]
-> **🟢 Staff+** — Two versions running during rollout — schema must be backward compatible. Canary needs traffic routing infra. Example: Kubernetes rolling update `maxUnavailable: 0` + PDB. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Two versions running during rollout — schema must be backward compatible. Canary needs traffic routing infra.
-
-**Example:** *Kubernetes rolling update `maxUnavailable: 0` + PDB.*
+> [!IMPORTANT]
+> **🟣 Important** — Correctness / invariants — strong consistency territory
 
 ### 🟣 Strong vs eventual consistency
 
@@ -1182,6 +1203,50 @@ flowchart TD
 
 📊 **Visual:** [Replica lag](interview-quick-fire.html#replica-lag)
 
+## Money & transactions
+
+> [!IMPORTANT]
+> **🟣 Important** — Correctness / invariants — strong consistency territory
+
+### 🔴 Payment correctness
+
+> [!CAUTION]
+> **🔴 Weak** — Charge the card; if timeout, retry the charge.
+>
+> [!WARNING]
+> **🟡 Strong** — **Double-entry ledger** (debits = credits). **Idempotency key** per payment attempt. **Never assume timeout = failure** — query PSP with same key before retry. **Immutable event log**.
+>
+> [!TIP]
+> **🟢 Staff+** — Ledger storage grows forever — archive policy. Reconciliation jobs add ops. Strong consistency limits TPS per shard. Example: Stripe — PaymentIntent state machine + idempotent API. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Ledger storage grows forever — archive policy. Reconciliation jobs add ops. Strong consistency limits TPS per shard.
+
+**Example:** *Stripe — PaymentIntent state machine + idempotent API.*
+
+📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency) · [Saga](interview-quick-fire.html#saga)
+
+### 🔴 Inventory / wallet balance
+
+> [!CAUTION]
+> **🔴 Weak** — UPDATE balance = balance - amount — SQL is atomic.
+>
+> [!WARNING]
+> **🟡 Strong** — **Single-row transaction:** `UPDATE inventory SET qty = qty - 1 WHERE id = ? AND qty > 0`. **Available balance** = settled − holds − pending. No cross-request RMW without lock.
+>
+> [!TIP]
+> **🟢 Staff+** — Row-level locking caps QPS on hot SKU. Holds expire — need TTL job to release. Example: Airline — seat row locked for 15 min during checkout. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Row-level locking caps QPS on hot SKU. Holds expire — need TTL job to release.
+
+**Example:** *Airline — seat row locked for 15 min during checkout.*
+
+📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
+
+## Fan-out & real-time
+
+> [!TIP]
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
+
 ### 🟢 Fan-out to millions of followers
 
 > [!CAUTION]
@@ -1229,35 +1294,10 @@ flowchart TD
 
 **Example:** *Uber ride arrived — high-priority queue bypasses marketing rate cap.*
 
-### 🟢 Store large files
+## Messaging & async
 
-> [!CAUTION]
-> **🔴 Weak** — Multipart upload to S3 in one HTTP request.
->
-> [!WARNING]
-> **🟡 Strong** — **S3/GCS** for bytes; **DB for metadata** only. **Pre-signed URLs** for direct client upload/download — bytes never through app servers. **CDN** for read path.
->
 > [!TIP]
-> **🟢 Staff+** — Presigned URL leakage = temporary exposure — short TTL. Multipart upload complexity. Listing large buckets is slow — index metadata in DB. Example: Dropbox — metadata service + direct S3 chunk upload. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Presigned URL leakage = temporary exposure — short TTL. Multipart upload complexity. Listing large buckets is slow — index metadata in DB.
-
-**Example:** *Dropbox — metadata service + direct S3 chunk upload.*
-
-### 🟢 Video streaming
-
-> [!CAUTION]
-> **🔴 Weak** — Serve the original 4K file — clients buffer.
->
-> [!WARNING]
-> **🟡 Strong** — Upload → **transcode ladder** (360p–4K) → **HLS segments** in object storage → **CDN**. **ABR manifest** lets client switch bitrate. Metadata in PG; bytes never in SQL.
->
-> [!TIP]
-> **🟢 Staff+** — Transcode lag — publish before all bitrates ready (progressive). Storage multiplication per resolution. Example: YouTube — parallel transcode jobs; 360p available within seconds. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Transcode lag — publish before all bitrates ready (progressive). Storage multiplication per resolution.
-
-**Example:** *YouTube — parallel transcode jobs; 360p available within seconds.*
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
 
 ### 🟢 Decouple services
 
@@ -1293,6 +1333,46 @@ flowchart TD
 
 📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
+## Storage & media
+
+> [!TIP]
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
+
+### 🟢 Store large files
+
+> [!CAUTION]
+> **🔴 Weak** — Multipart upload to S3 in one HTTP request.
+>
+> [!WARNING]
+> **🟡 Strong** — **S3/GCS** for bytes; **DB for metadata** only. **Pre-signed URLs** for direct client upload/download — bytes never through app servers. **CDN** for read path.
+>
+> [!TIP]
+> **🟢 Staff+** — Presigned URL leakage = temporary exposure — short TTL. Multipart upload complexity. Listing large buckets is slow — index metadata in DB. Example: Dropbox — metadata service + direct S3 chunk upload. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Presigned URL leakage = temporary exposure — short TTL. Multipart upload complexity. Listing large buckets is slow — index metadata in DB.
+
+**Example:** *Dropbox — metadata service + direct S3 chunk upload.*
+
+### 🟢 Video streaming
+
+> [!CAUTION]
+> **🔴 Weak** — Serve the original 4K file — clients buffer.
+>
+> [!WARNING]
+> **🟡 Strong** — Upload → **transcode ladder** (360p–4K) → **HLS segments** in object storage → **CDN**. **ABR manifest** lets client switch bitrate. Metadata in PG; bytes never in SQL.
+>
+> [!TIP]
+> **🟢 Staff+** — Transcode lag — publish before all bitrates ready (progressive). Storage multiplication per resolution. Example: YouTube — parallel transcode jobs; 360p available within seconds. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Transcode lag — publish before all bitrates ready (progressive). Storage multiplication per resolution.
+
+**Example:** *YouTube — parallel transcode jobs; 360p available within seconds.*
+
+## Security & abuse
+
+> [!WARNING]
+> **🟠 High** — Resilience under stress — name degraded mode + recovery
+
 ### 🟠 Rate limiting
 
 > [!CAUTION]
@@ -1322,6 +1402,31 @@ flowchart TD
 **Trade-offs:** WAF false positives block legit users. CDN cost scales with attack size.
 
 **Example:** *Cloudflare Under Attack mode — interactive challenge before origin.*
+
+## Geo & search
+
+> [!TIP]
+> **🟢 Pattern** — Core design pattern — pattern + trade-off + anchor
+
+### 🟢 Nearby search (Yelp, Uber)
+
+> [!CAUTION]
+> **🔴 Weak** — PostGIS radius query on every map pan.
+>
+> [!WARNING]
+> **🟡 Strong** — **Geohash prefix** or PostGIS `ST_DWithin` for coarse filter → **refine** with haversine on small candidate set. **Cache** results per `(lat,lng, radius)` cell. Moving objects: **Redis GEO** + periodic refresh.
+>
+> [!TIP]
+> **🟢 Staff+** — Geohash edge cases — query neighbor cells. PostGIS on huge tables needs GiST index and connection pool tuning. Example: Uber — geohash grid + surge pricing per cell. Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Geohash edge cases — query neighbor cells. PostGIS on huge tables needs GiST index and connection pool tuning.
+
+**Example:** *Uber — geohash grid + surge pricing per cell.*
+
+## Observability & ops
+
+> [!NOTE]
+> **🔵 Prep** — Interview framework — how to answer and go deeper
 
 ### 🔵 Debug production incidents
 
@@ -1353,54 +1458,10 @@ flowchart TD
 
 **Example:** *Datadog bill 3× after someone tagged `user_id` on HTTP metric.*
 
-### 🟢 Nearby search (Yelp, Uber)
+## Practice drill
 
-> [!CAUTION]
-> **🔴 Weak** — PostGIS radius query on every map pan.
->
-> [!WARNING]
-> **🟡 Strong** — **Geohash prefix** or PostGIS `ST_DWithin` for coarse filter → **refine** with haversine on small candidate set. **Cache** results per `(lat,lng, radius)` cell. Moving objects: **Redis GEO** + periodic refresh.
->
-> [!TIP]
-> **🟢 Staff+** — Geohash edge cases — query neighbor cells. PostGIS on huge tables needs GiST index and connection pool tuning. Example: Uber — geohash grid + surge pricing per cell. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Geohash edge cases — query neighbor cells. PostGIS on huge tables needs GiST index and connection pool tuning.
-
-**Example:** *Uber — geohash grid + surge pricing per cell.*
-
-### 🔴 Payment correctness
-
-> [!CAUTION]
-> **🔴 Weak** — Charge the card; if timeout, retry the charge.
->
-> [!WARNING]
-> **🟡 Strong** — **Double-entry ledger** (debits = credits). **Idempotency key** per payment attempt. **Never assume timeout = failure** — query PSP with same key before retry. **Immutable event log**.
->
-> [!TIP]
-> **🟢 Staff+** — Ledger storage grows forever — archive policy. Reconciliation jobs add ops. Strong consistency limits TPS per shard. Example: Stripe — PaymentIntent state machine + idempotent API. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Ledger storage grows forever — archive policy. Reconciliation jobs add ops. Strong consistency limits TPS per shard.
-
-**Example:** *Stripe — PaymentIntent state machine + idempotent API.*
-
-📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency) · [Saga](interview-quick-fire.html#saga)
-
-### 🔴 Inventory / wallet balance
-
-> [!CAUTION]
-> **🔴 Weak** — UPDATE balance = balance - amount — SQL is atomic.
->
-> [!WARNING]
-> **🟡 Strong** — **Single-row transaction:** `UPDATE inventory SET qty = qty - 1 WHERE id = ? AND qty > 0`. **Available balance** = settled − holds − pending. No cross-request RMW without lock.
->
-> [!TIP]
-> **🟢 Staff+** — Row-level locking caps QPS on hot SKU. Holds expire — need TTL job to release. Example: Airline — seat row locked for 15 min during checkout. Name metric + revisit trigger when they push depth.
-
-**Trade-offs:** Row-level locking caps QPS on hot SKU. Holds expire — need TTL job to release.
-
-**Example:** *Airline — seat row locked for 15 min during checkout.*
-
-📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
+> [!NOTE]
+> **🔵 Prep** — Interview framework — how to answer and go deeper
 
 ### 🔵 Level 1 — Quick-fire (30s each)
 

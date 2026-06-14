@@ -84,6 +84,192 @@ PATTERN_OVERRIDE = {
     "Retry storm": "critical",
 }
 
+PATTERN_SECTIONS: list[tuple[str, list[str]]] = [
+    (
+        "Classic failure modes & distributed pitfalls",
+        [
+            "Thundering herd",
+            "Cache stampede (dogpile)",
+            "Retry storm",
+            "Metastable failure",
+            "Hot partition / hot key",
+            "Split brain",
+            "Poison message",
+            "Head-of-line blocking",
+            "N+1 queries",
+            "Connection pool exhaustion",
+            "Replica lag / stale read",
+            "Slow node (straggler)",
+            "Dual-write problem",
+            "Circular dependency / retry loop",
+        ],
+    ),
+    (
+        "Availability & resilience",
+        [
+            "Handle traffic spikes",
+            "Eliminate single point of failure",
+            "DB primary fails",
+            "Cascading failure",
+            "Regional outage",
+            "Zero-downtime deploy",
+        ],
+    ),
+    (
+        "Reads & caching",
+        [
+            "Reduce DB read load",
+            "Hot key / viral content",
+            "Stale cache after update",
+            "Reduce global read latency",
+            "Pagination at scale",
+            "Search across billions of records",
+            "Autocomplete / typeahead",
+        ],
+    ),
+    (
+        "Writes & throughput",
+        [
+            "Scale writes past single DB",
+            "High write burst (flash sale)",
+            "Idempotent writes",
+            "Prevent double booking",
+            "Distributed counter",
+            "Unique ID at scale",
+        ],
+    ),
+    (
+        "Consistency & correctness",
+        [
+            "Strong vs eventual consistency",
+            "Guarantee exactly-once",
+            "Cross-service transaction",
+            "Read-your-writes",
+        ],
+    ),
+    (
+        "Money & transactions",
+        [
+            "Payment correctness",
+            "Inventory / wallet balance",
+        ],
+    ),
+    (
+        "Fan-out & real-time",
+        [
+            "Fan-out to millions of followers",
+            "WebSocket at scale",
+            "Push notifications at scale",
+        ],
+    ),
+    (
+        "Messaging & async",
+        [
+            "Decouple services",
+            "Webhook delivery",
+        ],
+    ),
+    (
+        "Storage & media",
+        [
+            "Store large files",
+            "Video streaming",
+        ],
+    ),
+    (
+        "Security & abuse",
+        [
+            "Rate limiting",
+            "DDoS / abuse",
+        ],
+    ),
+    (
+        "Geo & search",
+        [
+            "Nearby search (Yelp, Uber)",
+        ],
+    ),
+    (
+        "Observability & ops",
+        [
+            "Debug production incidents",
+            "Cardinality explosion (metrics)",
+        ],
+    ),
+    (
+        "Practice drill",
+        [
+            "Level 1 — Quick-fire (30s each)",
+            "Level 2 — Deep dive (3 min each)",
+            "Level 3 — Interruption drill",
+        ],
+    ),
+]
+
+SECTION_ORDER = [name for name, _ in PATTERN_SECTIONS]
+
+SECTION_BANNERS = {
+    sev_key: (
+        f"\n> [!{SEVERITY[sev_key]['alert']}]\n"
+        f"> **{SEVERITY[sev_key]['emoji']} {SEVERITY[sev_key]['label']}** — {SEVERITY[sev_key]['hint']}\n\n"
+    )
+    for sev_key in SEVERITY
+}
+
+
+def _pattern_block_title(block: str):
+    m = re.match(r"### (?:[🔴🟠🟣🟢🔵] )?(.+)", block.strip())
+    return m.group(1).strip() if m else None
+
+
+def reorganize_pattern_sections(md: str) -> str:
+    """Split collapsed pattern blob into topical ## sections (idempotent)."""
+    marker = "## Classic failure modes & distributed pitfalls"
+    if marker not in md:
+        return md
+
+    # Already split if a second pattern section exists after classic failures.
+    tail = md.split(marker, 1)[1]
+    if re.search(r"\n## (?:Reads & caching|Availability & resilience|Writes & throughput)\b", tail):
+        return md
+
+    footer_m = re.search(r"\n\*Eddy Hung", md)
+    if not footer_m:
+        return md
+
+    before = md[: md.index(marker)]
+    region = md[md.index(marker) : footer_m.start()]
+    after = md[footer_m.start() :]
+
+    blocks = re.split(r"\n(?=### )", region.strip())
+    by_title: dict[str, str] = {}
+    for block in blocks[1:]:
+        title = _pattern_block_title(block)
+        if title:
+            by_title[title] = block.strip()
+
+    out = before.rstrip() + "\n\n"
+    missing: list[str] = []
+    for sec_name, titles in PATTERN_SECTIONS:
+        sev_key = SECTION_SEV.get(sec_name, "prep")
+        out += f"## {sec_name}\n{SECTION_BANNERS[sev_key]}"
+        for title in titles:
+            block = by_title.pop(title, None)
+            if block:
+                out += block + "\n\n"
+            else:
+                missing.append(f"{sec_name}: {title}")
+
+    if by_title:
+        out += "## Uncategorized\n\n"
+        for block in by_title.values():
+            out += block + "\n\n"
+
+    if missing:
+        print("Warning: missing pattern blocks:", ", ".join(missing))
+
+    return out + after.lstrip()
+
 
 def slugify(title: str) -> str:
     s = title.lower().strip()
@@ -498,6 +684,9 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
             }
         )
 
+    order = {name: i for i, name in enumerate(SECTION_ORDER)}
+    data.sort(key=lambda s: order.get(s["title"], 999))
+
     payload = json.dumps(data, ensure_ascii=False)
     page_title, page_sub = parse_page_title(md)
     if page_sub:
@@ -616,7 +805,10 @@ h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .visual a{{font-weight:500}}
 .sb-link{{display:block;padding:5px 10px;font-size:.8rem;color:var(--muted);text-decoration:none;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .sb-link:hover{{background:rgba(0,0,0,.04);color:var(--text)}}
-.sb-sec{{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:12px 8px 4px}}
+.sb-group{{margin-bottom:6px}}
+.sb-sec-link{{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 8px 4px;text-decoration:none;border-radius:6px;cursor:pointer}}
+.sb-sec-link:hover{{background:rgba(0,0,0,.04);color:var(--text)}}
+.sb-count{{font-size:.62rem;font-weight:600;padding:1px 6px;border-radius:100px;background:rgba(0,0,0,.06);color:var(--muted);flex-shrink:0}}
 .sb-dot{{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}}
 .links{{margin-top:16px;font-size:.85rem}}
 .links a{{margin-right:12px}}
@@ -639,7 +831,7 @@ code{{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding
       <button class="vtab" type="button" data-view="diagrams">Diagrams</button>
     </div>
     <div id="sb-patterns-tools">
-      <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Severity sidebar</div>
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Browse by topic</div>
       <div id="sb-nav"></div>
     </div>
     <div class="links">
@@ -772,7 +964,16 @@ function render() {{
     secEl.id = sec.slug;
     secEl.innerHTML = `<div class="sec-hdr ${{sec.severity}}">${{s.emoji}} ${{sec.title}}</div>`;
     const sbSec = document.createElement('div');
-    sbSec.innerHTML = `<div class="sb-sec">${{s.emoji}} ${{sec.title}}</div>`;
+    sbSec.className = 'sb-group';
+    const secLink = document.createElement('a');
+    secLink.className = 'sb-sec-link';
+    secLink.href = '#' + sec.slug;
+    secLink.innerHTML = `<span>${{s.emoji}} ${{sec.title}}</span><span class="sb-count">${{patterns.length}}</span>`;
+    secLink.onclick = e => {{
+      e.preventDefault();
+      document.getElementById(sec.slug)?.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    }};
+    sbSec.appendChild(secLink);
     patterns.forEach(p => {{
       const ps = SEV[p.severity] || SEV.pattern;
       const card = document.createElement('div');
@@ -849,6 +1050,7 @@ def load_diagram_inc() -> str:
 
 def main():
     md = MD_PATH.read_text(encoding="utf-8")
+    md = reorganize_pattern_sections(md)
     intro, sections = parse_sections(md)
     md = enrich_markdown(md, sections)
     MD_PATH.write_text(md, encoding="utf-8")
