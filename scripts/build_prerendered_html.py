@@ -465,46 +465,14 @@ def patch_v15_html(text: str, systems: list[dict]) -> str:
 
 
 def patch_v10_cards(html_text: str) -> str:
-    """Inject v10 system cards from SYSTEMS array using id-marker split."""
-    from build_github_view import parse_v10_system, render_v10_markdown, split_v10_systems
+    """GitHub Pages edition: keep SYSTEMS for client-side interactive card tabs.
 
-    blocks = split_v10_systems(html_text)
-    systems = [parse_v10_system(b, i) for i, b in enumerate(blocks)]
-
-    def card_md_html(s: dict) -> str:
-        md = render_v10_markdown(s)
-        # Convert details blocks to HTML (already HTML details in md)
-        body = md.split("---")[1] if "---" in md else md
-        return (
-            f'<div class="scard" id="card-{s["id"]}" data-diff="{s["diff"]}" '
-            f'data-title="{esc((s["title"]+" "+s["sub"]).lower())}">'
-            f'<div class="scard-hdr"><div class="scard-title">{esc(s["title"])}</div>'
-            f'<div class="scard-sub">{esc(s.get("vol",""))} · {esc(s["sub"])}</div></div>'
-            f'<div class="gh-fallback">{body}</div></div>'
-        )
-
-    by_diff = {"e": [], "m": [], "h": []}
-    for s in systems:
-        by_diff[s["diff"]].append(card_md_html(s))
-
-    for diff, gid in [("e", "cards-ge"), ("m", "cards-gm"), ("h", "cards-gh")]:
-        cards = "\n".join(by_diff[diff])
-        html_text = re.sub(
-            rf'<div class="cards-grid" id="{gid}"></div>',
-            f'<div class="cards-grid" id="{gid}">\n{cards}\n</div>',
-            html_text,
-            count=1,
-        )
-
-    html_text = re.sub(
-        r"const SYSTEMS = \[[\s\S]*?\n\];",
-        "const SYSTEMS=[];/* pre-rendered */",
-        html_text,
-        count=1,
-    )
+    Pre-rendered markdown fallbacks showed raw **bold** and list syntax inside
+    <details>; the interactive renderCard() engine already produces proper HTML.
+    """
     html_text = html_text.replace(
         "function renderCards(){",
-        "function renderCards(){\n  if(document.querySelector('.scard'))return;",
+        "function renderCards(){\n  if(document.querySelector('.scard-tab'))return;",
         1,
     )
     return html_text
