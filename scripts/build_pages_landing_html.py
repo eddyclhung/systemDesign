@@ -239,7 +239,7 @@ Use the HTML editions below — all 40 cards, search, and tabs on Pages.
         toc.append(f"<h3>{label} ({len(group)})</h3>")
         for s in group:
             badge = DIFF_BADGE[s["diff"]]
-            href = f"../../system_design_cheatsheet_v15_github.html#card-{s['idx']}"
+            href = f"../../system_design_cheatsheet_v15_github.html#{s['slug']}"
             toc.append(
                 f'<a href="{href}">{html.escape(s["title"])}'
                 f' <span class="badge {badge}">{DIFF_LABEL[s["diff"]]}</span></a>'

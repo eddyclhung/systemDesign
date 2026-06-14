@@ -504,6 +504,7 @@ html:not(.js-enabled) .js-only{display:none!important}
     <a class="sb-sys sb-h" data-diff="h" data-idx="39" onclick="navTo(39,event)">Digital wallet (Apple Pay)</a>
 
 
+
     </div>
 
     <div class="sb-section">Theme</div>
@@ -8815,12 +8816,12 @@ function mainScrollOffset(){
   const tb=document.querySelector('.topbar');
   return Math.ceil(tb?.getBoundingClientRect().height||44)+10;
 }
-function scrollMainTo(el,gap){
+function scrollMainTo(el,gap,instant){
   const main=getMain();
   if(!main||!el)return;
   const gapPx=gap==null?mainScrollOffset():gap;
   const top=main.scrollTop+(el.getBoundingClientRect().top-main.getBoundingClientRect().top)-gapPx;
-  main.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+  main.scrollTo({top:Math.max(0,top),behavior:instant?'auto':'smooth'});
 }
 function ensureMainScrollSync(){
   const mainEl=getMain();
@@ -8831,7 +8832,7 @@ function ensureMainScrollSync(){
 }
 function getState(){try{return JSON.parse(localStorage.getItem(LS)||'{}');}catch(e){return {};}}
 function setState(p){const s={...getState(),...p};localStorage.setItem(LS,JSON.stringify(s));}
-function navTo(idx, e, tab){
+function navTo(idx, e, tab, instant){
   if(e) e.preventDefault();
   const card = document.getElementById('card-'+idx);
   if(!card) return;
@@ -8843,11 +8844,13 @@ function navTo(idx, e, tab){
     const btn=card.querySelector('.tab[data-tab="'+tab+'"]');
     if(btn) sw(btn,'c'+idx,tab,idx);
   }
-  setTimeout(()=>{
-    scrollMainTo(card,mainScrollOffset());
+  const scroll=()=>{
+    scrollMainTo(card,mainScrollOffset(),instant);
     card.classList.add('card-flash');
     setTimeout(()=>card.classList.remove('card-flash'), 800);
-  }, 50);
+  };
+  if(instant) requestAnimationFrame(scroll);
+  else setTimeout(scroll, 50);
   history.replaceState(null,'','#card-'+idx+(tab?'-'+tab:''));
   if(window.innerWidth<=768) toggleSidebar();
   document.querySelectorAll('.sb-sys').forEach(a=>a.classList.remove('active'));
@@ -9081,6 +9084,30 @@ function toggleDb(hdr){
   }
 }
 
+function resolveHashNav(hash){
+  if(!hash) return null;
+  let m=hash.match(/^card-(\d+)(?:-([a-z]))?$/);
+  if(m) return {idx:parseInt(m[1],10),tab:m[2]||null};
+  const bySlug=document.querySelector('.card[data-slug="'+hash+'"]');
+  if(bySlug) return {idx:parseInt(bySlug.dataset.idx,10),tab:null};
+  const el=document.getElementById(hash);
+  if(el) return {el};
+  const idx=C.findIndex(c=>slugify(c.title)===hash);
+  if(idx>=0) return {idx,tab:null};
+  return null;
+}
+function followHash(instant){
+  const target=resolveHashNav(location.hash.slice(1));
+  if(!target) return;
+  if(target.el){
+    const scroll=()=>scrollMainTo(target.el,mainScrollOffset(),instant);
+    if(instant) requestAnimationFrame(scroll);
+    else setTimeout(scroll,120);
+    return;
+  }
+  navTo(target.idx,null,target.tab,instant);
+}
+
 function initApp(){
   ensureMainScrollSync();
   const gw=document.getElementById('github-warn');
@@ -9129,18 +9156,10 @@ function initApp(){
       }
     });
   }
-  const hash=location.hash.slice(1);
-  if(hash){
-    let m=hash.match(/^card-(\d+)(?:-([a-z]))?$/);
-    if(m) navTo(parseInt(m[1],10),null,m[2]);
-    else if(document.getElementById(hash)){
-      setTimeout(()=>scrollToEl(document.getElementById(hash)),120);
-    }
-    else{
-      const idx=C.findIndex(c=>slugify(c.title)===hash);
-      if(idx>=0) navTo(idx);
-    }
-  }
+  followHash(true);
+  requestAnimationFrame(()=>followHash(true));
+  setTimeout(()=>followHash(true),150);
+  window.addEventListener('hashchange',()=>followHash(false));
   document.addEventListener('keydown',e=>{
     if(e.target.matches('input,textarea,select')&&e.key!=='Escape')return;
     if(e.key==='/'&&!e.target.matches('input,textarea')){
