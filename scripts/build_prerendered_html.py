@@ -502,7 +502,7 @@ def main():
     print(f"Wrote {OUT.relative_to(ROOT)}")
 
     # CI/Pages only: inject pre-rendered cards into v14 for deploy (git source stays lean).
-    if os.environ.get("GITHUB_ACTIONS") == "true":
+    if os.environ.get("BUILD_PAGES_DEPLOY") == "1" or os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
         v14_pages = patch_v14_for_pages(v15, systems)
         SRC.write_text(v14_pages, encoding="utf-8")
         print(f"Wrote Pages edition {SRC.relative_to(ROOT)} ({len(systems)} cards injected)")
