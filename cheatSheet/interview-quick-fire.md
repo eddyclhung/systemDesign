@@ -2,7 +2,7 @@
 
 When the interviewer pivots mid-design: *"How would you handle X?"* — answer with **pattern → trade-off → anchor**, then stop unless they want depth.
 
-Full cheatsheet: [system_design_cheatsheet_v14.html](system_design_cheatsheet_v14.html) · [40 system cards](github/v15/index.html) · [Colorful view](interview-quick-fire.html) · [Diagrams](interview-quick-fire-diagrams.html)
+Full cheatsheet: [system_design_cheatsheet_v14.html](system_design_cheatsheet_v14.html) · [40 system cards](github/v15/index.html) · [Colorful view](interview-quick-fire.html) · [Diagrams](interview-quick-fire.html#diagrams)
 
 
 
@@ -18,6 +18,9 @@ Interviewers score you by depth. For every pattern, practice three rungs:
 | 🟢 **Staff+** | Failure mode + metric + when you'd revisit | Staff — operated production |
 
 Each pattern below includes all three. **Default answer in interview:** Strong in 30s → offer Staff+ if they probe.
+
+
+
 
 
 
@@ -65,10 +68,10 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 **Visual archetypes** *(17 diagrams → 70+ patterns)*
 
-- [**Interactive diagrams (HTML)**](interview-quick-fire-diagrams.html) — zoom, fullscreen, before/after tabs, **fully offline**
+- [**Interactive diagrams (HTML)**](interview-quick-fire.html#diagrams) — zoom, fullscreen, before/after tabs, **fully offline**
 - [When to diagram](#visual-archetypes) · [Pattern → diagram map](#pattern--diagram-map)
-- Failure modes: [herd](interview-quick-fire-diagrams.html#thundering-herd) · [retry storm](interview-quick-fire-diagrams.html#retry-storm) · [hot key](interview-quick-fire-diagrams.html#hot-key) · [split brain](interview-quick-fire-diagrams.html#split-brain) · [poison msg](interview-quick-fire-diagrams.html#poison-message) · [dual-write](interview-quick-fire-diagrams.html#dual-write)
-- Core flows: [cache-aside](interview-quick-fire-diagrams.html#cache-aside) · [fan-out](interview-quick-fire-diagrams.html#fan-out) · [saga](interview-quick-fire-diagrams.html#saga) · [idempotency](interview-quick-fire-diagrams.html#idempotency) · [seat hold](interview-quick-fire-diagrams.html#seat-hold)
+- Failure modes: [herd](interview-quick-fire.html#thundering-herd) · [retry storm](interview-quick-fire.html#retry-storm) · [hot key](interview-quick-fire.html#hot-key) · [split brain](interview-quick-fire.html#split-brain) · [poison msg](interview-quick-fire.html#poison-message) · [dual-write](interview-quick-fire.html#dual-write)
+- Core flows: [cache-aside](interview-quick-fire.html#cache-aside) · [fan-out](interview-quick-fire.html#fan-out) · [saga](interview-quick-fire.html#saga) · [idempotency](interview-quick-fire.html#idempotency) · [seat hold](interview-quick-fire.html#seat-hold)
 
 **Practice**
 
@@ -278,9 +281,9 @@ Say assumptions aloud: *"Assuming 10M DAU, 10 reads each, peak 5× → ~6K read 
 | Before/after fixes (single-flight, outbox) | Observability / alerting advice |
 | State machines (circuit breaker, saga) | Back-of-envelope math |
 
-**Study method:** read the staff answer → open the [**interactive diagram**](interview-quick-fire-diagrams.html) (or Mermaid below) → redraw from memory on a whiteboard in 60s. In the interview, sketch the **same archetype** and label it for *their* system.
+**Study method:** read the staff answer → open the [**interactive diagram**](interview-quick-fire.html#diagrams) (or Mermaid below) → redraw from memory on a whiteboard in 60s. In the interview, sketch the **same archetype** and label it for *their* system.
 
-Each pattern below links here with `📊 Visual:` — open the [HTML edition](interview-quick-fire-diagrams.html) for zoom/fullscreen.
+Each pattern below links here with `📊 Visual:` — open the [HTML edition](interview-quick-fire.html#diagrams) for zoom/fullscreen.
 
 ---
 
@@ -551,24 +554,24 @@ flowchart TD
 
 | Pattern | Diagram |
 |---------|---------|
-| Thundering herd, cache stampede | [Thundering herd](interview-quick-fire-diagrams.html#thundering-herd) |
-| Retry storm, metastable, cascading failure | [Retry storm](interview-quick-fire-diagrams.html#retry-storm) |
-| Hot key, hot partition, viral content | [Hot key](interview-quick-fire-diagrams.html#hot-key) |
-| Split brain, DB failover | [Split brain](interview-quick-fire-diagrams.html#split-brain) |
-| Poison message, head-of-line | [Poison message](interview-quick-fire-diagrams.html#poison-message) |
-| N+1 queries | [N+1 vs batch](interview-quick-fire-diagrams.html#n1-batch) |
-| Connection pool exhaustion | [Pool exhaustion](interview-quick-fire-diagrams.html#connection-pool) |
-| Replica lag, read-your-writes | [Replica lag](interview-quick-fire-diagrams.html#replica-lag) |
-| Dual-write, search index, webhooks | [Dual-write vs outbox](interview-quick-fire-diagrams.html#dual-write) |
-| Reduce DB reads, stale cache | [Cache-aside](interview-quick-fire-diagrams.html#cache-aside) |
-| Fan-out, push notifications | [Fan-out hybrid](interview-quick-fire-diagrams.html#fan-out) |
-| Cross-service TX, payments | [Saga](interview-quick-fire-diagrams.html#saga) |
-| Idempotent writes, payments | [Idempotency](interview-quick-fire-diagrams.html#idempotency) |
-| Double booking, flash sale | [Seat hold](interview-quick-fire-diagrams.html#seat-hold) |
-| Slow node / straggler | [Scatter-gather](interview-quick-fire-diagrams.html#straggler) |
-| Rate limiting, DDoS | [Token bucket](interview-quick-fire-diagrams.html#token-bucket) |
-| CDN / geo latency | Extend [cache-aside](interview-quick-fire-diagrams.html#cache-aside): Client → CDN → origin |
-| WebSocket scale | [WebSocket at scale](interview-quick-fire-diagrams.html#websocket-scale) |
+| Thundering herd, cache stampede | [Thundering herd](interview-quick-fire.html#thundering-herd) |
+| Retry storm, metastable, cascading failure | [Retry storm](interview-quick-fire.html#retry-storm) |
+| Hot key, hot partition, viral content | [Hot key](interview-quick-fire.html#hot-key) |
+| Split brain, DB failover | [Split brain](interview-quick-fire.html#split-brain) |
+| Poison message, head-of-line | [Poison message](interview-quick-fire.html#poison-message) |
+| N+1 queries | [N+1 vs batch](interview-quick-fire.html#n1-batch) |
+| Connection pool exhaustion | [Pool exhaustion](interview-quick-fire.html#connection-pool) |
+| Replica lag, read-your-writes | [Replica lag](interview-quick-fire.html#replica-lag) |
+| Dual-write, search index, webhooks | [Dual-write vs outbox](interview-quick-fire.html#dual-write) |
+| Reduce DB reads, stale cache | [Cache-aside](interview-quick-fire.html#cache-aside) |
+| Fan-out, push notifications | [Fan-out hybrid](interview-quick-fire.html#fan-out) |
+| Cross-service TX, payments | [Saga](interview-quick-fire.html#saga) |
+| Idempotent writes, payments | [Idempotency](interview-quick-fire.html#idempotency) |
+| Double booking, flash sale | [Seat hold](interview-quick-fire.html#seat-hold) |
+| Slow node / straggler | [Scatter-gather](interview-quick-fire.html#straggler) |
+| Rate limiting, DDoS | [Token bucket](interview-quick-fire.html#token-bucket) |
+| CDN / geo latency | Extend [cache-aside](interview-quick-fire.html#cache-aside): Client → CDN → origin |
+| WebSocket scale | [WebSocket at scale](interview-quick-fire.html#websocket-scale) |
 
 ---
 
@@ -593,7 +596,7 @@ flowchart TD
 
 **Example:** *Redis restart during peak → 100% miss → Postgres connection pool exhausted in seconds. Netflix-style: mutex per key + early async refresh.*
 
-📊 **Visual:** [Thundering herd](interview-quick-fire-diagrams.html#thundering-herd)
+📊 **Visual:** [Thundering herd](interview-quick-fire.html#thundering-herd)
 
 ### 🔴 Cache stampede (dogpile)
 
@@ -610,7 +613,7 @@ flowchart TD
 
 **Example:** *Feed ranker takes 200ms; 10K concurrent misses = 2K parallel rank jobs. Fix: one refresh job per `(user, feed)` key; readers get previous snapshot.*
 
-📊 **Visual:** [Thundering herd](interview-quick-fire-diagrams.html#thundering-herd) *(add serve-stale branch)*
+📊 **Visual:** [Thundering herd](interview-quick-fire.html#thundering-herd) *(add serve-stale branch)*
 
 ### 🔴 Retry storm
 
@@ -627,7 +630,7 @@ flowchart TD
 
 **Example:** *Payment API at 80% CPU; clients retry 3× → effective load 240%. Breaker opens; queue for async reconciliation instead.*
 
-📊 **Visual:** [Retry storm](interview-quick-fire-diagrams.html#retry-storm)
+📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm)
 
 ### 🔴 Metastable failure
 
@@ -644,7 +647,7 @@ flowchart TD
 
 **Example:** *AWS ALB + Lambda cold starts + retry loops → hours of elevated errors after a 2-minute DB blip.*
 
-📊 **Visual:** [Retry storm](interview-quick-fire-diagrams.html#retry-storm) *(stuck in overload loop)*
+📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm) *(stuck in overload loop)*
 
 ### 🔴 Hot partition / hot key
 
@@ -661,7 +664,7 @@ flowchart TD
 
 **Example:** *Justin Bieber tweet fan-out — Twitter switched to pull model for >10M follower accounts.*
 
-📊 **Visual:** [Hot key](interview-quick-fire-diagrams.html#hot-key) · [Fan-out hybrid](interview-quick-fire-diagrams.html#fan-out)
+📊 **Visual:** [Hot key](interview-quick-fire.html#hot-key) · [Fan-out hybrid](interview-quick-fire.html#fan-out)
 
 ### 🔴 Split brain
 
@@ -678,7 +681,7 @@ flowchart TD
 
 **Example:** *Redis primary + async replica both promoted after partition → duplicate short codes. Fix: etcd lease + single writer.*
 
-📊 **Visual:** [Split brain](interview-quick-fire-diagrams.html#split-brain)
+📊 **Visual:** [Split brain](interview-quick-fire.html#split-brain)
 
 ### 🔴 Poison message
 
@@ -695,7 +698,7 @@ flowchart TD
 
 **Example:** *Kafka consumer OOM on 12MB JSON → partition stuck. Move to DLQ; fix deserializer; replay with size cap.*
 
-📊 **Visual:** [Poison message](interview-quick-fire-diagrams.html#poison-message)
+📊 **Visual:** [Poison message](interview-quick-fire.html#poison-message)
 
 ### 🔴 Head-of-line blocking
 
@@ -712,7 +715,7 @@ flowchart TD
 
 **Example:** *Video transcode 40 min blocks thumbnail job. Dedicated `fast` and `slow` Kafka topics.*
 
-📊 **Visual:** [Poison message](interview-quick-fire-diagrams.html#poison-message) *(split fast/slow queues)*
+📊 **Visual:** [Poison message](interview-quick-fire.html#poison-message) *(split fast/slow queues)*
 
 ### 🔴 N+1 queries
 
@@ -729,7 +732,7 @@ flowchart TD
 
 **Example:** *Feed loads 500 authors each with a profile query → 501 DB roundtrips. Batch `WHERE id IN (...)`.*
 
-📊 **Visual:** [N+1 vs batch](interview-quick-fire-diagrams.html#n1-batch)
+📊 **Visual:** [N+1 vs batch](interview-quick-fire.html#n1-batch)
 
 ### 🔴 Connection pool exhaustion
 
@@ -746,7 +749,7 @@ flowchart TD
 
 **Example:** *Deploy leak leaves connections open → new requests hang 30s. Alert on `pool.waiting > 0`.*
 
-📊 **Visual:** [Connection pool](interview-quick-fire-diagrams.html#connection-pool)
+📊 **Visual:** [Connection pool](interview-quick-fire.html#connection-pool)
 
 ### 🔴 Replica lag / stale read
 
@@ -763,7 +766,7 @@ flowchart TD
 
 **Example:** *User posts comment, refresh shows nothing — read hit 30s-lagged replica. Session stickiness to primary for 5s after write.*
 
-📊 **Visual:** [Replica lag](interview-quick-fire-diagrams.html#replica-lag)
+📊 **Visual:** [Replica lag](interview-quick-fire.html#replica-lag)
 
 ### 🔴 Slow node (straggler)
 
@@ -780,7 +783,7 @@ flowchart TD
 
 **Example:** *ES query across 20 shards; one shard on noisy neighbor → p99 3s. Cancel straggler at 500ms; return 19/20.*
 
-📊 **Visual:** [Scatter-gather straggler](interview-quick-fire-diagrams.html#straggler)
+📊 **Visual:** [Scatter-gather straggler](interview-quick-fire.html#straggler)
 
 ### 🔴 Dual-write problem
 
@@ -797,7 +800,7 @@ flowchart TD
 
 **Example:** *Write PG succeeds, ES write fails — search missing new row until nightly rebuild. Outbox + indexer.*
 
-📊 **Visual:** [Dual-write vs outbox](interview-quick-fire-diagrams.html#dual-write)
+📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
 ### 🔴 Circular dependency / retry loop
 
@@ -814,7 +817,7 @@ flowchart TD
 
 **Example:** *Auth service calls User service calls Auth for permission — deadlock under load. Extract permissions cache.*
 
-📊 **Visual:** [Retry storm](interview-quick-fire-diagrams.html#retry-storm) *(draw A→B→A cycle; break with queue)*
+📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm) *(draw A→B→A cycle; break with queue)*
 
 ### 🟢 Reduce DB read load
 
@@ -831,7 +834,7 @@ flowchart TD
 
 **Example:** *Netflix ~95% API traffic served from EVCache/Memcached layer.*
 
-📊 **Visual:** [Cache-aside](interview-quick-fire-diagrams.html#cache-aside)
+📊 **Visual:** [Cache-aside](interview-quick-fire.html#cache-aside)
 
 ### 🟢 Hot key / viral content
 
@@ -848,7 +851,7 @@ flowchart TD
 
 **Example:** *Viral Bitly link — single Redis key melts. Local LRU + CDN 302 caching for top-N URLs.*
 
-📊 **Visual:** [Hot key](interview-quick-fire-diagrams.html#hot-key)
+📊 **Visual:** [Hot key](interview-quick-fire.html#hot-key)
 
 ### 🟢 Stale cache after update
 
@@ -910,7 +913,7 @@ flowchart TD
 
 **Example:** *Shopify product search — PG → Kafka → ES; rebuild index from PG snapshot overnight.*
 
-📊 **Visual:** [Dual-write vs outbox](interview-quick-fire-diagrams.html#dual-write)
+📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
 ### 🟢 Autocomplete / typeahead
 
@@ -957,7 +960,7 @@ flowchart TD
 
 **Example:** *Ticketmaster — virtual queue + Redis seat hold TTL + PG `SELECT FOR UPDATE`.*
 
-📊 **Visual:** [Seat hold 2-phase](interview-quick-fire-diagrams.html#seat-hold)
+📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
 
 ### 🟢 Idempotent writes
 
@@ -974,7 +977,7 @@ flowchart TD
 
 **Example:** *Stripe — same idempotency key on network retry never double-charges.*
 
-📊 **Visual:** [Idempotency](interview-quick-fire-diagrams.html#idempotency)
+📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency)
 
 ### 🟠 Prevent double booking
 
@@ -991,7 +994,7 @@ flowchart TD
 
 **Example:** *Airline seat map — row lock on `seat_id` for duration of checkout session.*
 
-📊 **Visual:** [Seat hold 2-phase](interview-quick-fire-diagrams.html#seat-hold)
+📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
 
 ### 🟢 Distributed counter
 
@@ -1083,7 +1086,7 @@ flowchart TD
 
 **Example:** *Netflix Hystrix-era pattern — fallback static list when recommendation service down.*
 
-📊 **Visual:** [Retry storm](interview-quick-fire-diagrams.html#retry-storm)
+📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm)
 
 ### 🟠 Regional outage
 
@@ -1160,7 +1163,7 @@ flowchart TD
 
 **Example:** *Travel booking — reserve flight → reserve hotel; if hotel fails, saga publishes cancel-flight.*
 
-📊 **Visual:** [Saga](interview-quick-fire-diagrams.html#saga)
+📊 **Visual:** [Saga](interview-quick-fire.html#saga)
 
 ### 🟣 Read-your-writes
 
@@ -1177,7 +1180,7 @@ flowchart TD
 
 **Example:** *Post tweet — API returns tweet object; timeline refresh uses primary for 3s.*
 
-📊 **Visual:** [Replica lag](interview-quick-fire-diagrams.html#replica-lag)
+📊 **Visual:** [Replica lag](interview-quick-fire.html#replica-lag)
 
 ### 🟢 Fan-out to millions of followers
 
@@ -1194,7 +1197,7 @@ flowchart TD
 
 **Example:** *Twitter — push for most; pull for Bieber-class accounts.*
 
-📊 **Visual:** [Fan-out hybrid](interview-quick-fire-diagrams.html#fan-out)
+📊 **Visual:** [Fan-out hybrid](interview-quick-fire.html#fan-out)
 
 ### 🟢 WebSocket at scale
 
@@ -1271,7 +1274,7 @@ flowchart TD
 
 **Example:** *Email send — API enqueues; worker pool sends via SES.*
 
-📊 **Visual:** [Poison message](interview-quick-fire-diagrams.html#poison-message) *(queue + DLQ pattern)*
+📊 **Visual:** [Poison message](interview-quick-fire.html#poison-message) *(queue + DLQ pattern)*
 
 ### 🟢 Webhook delivery
 
@@ -1288,7 +1291,7 @@ flowchart TD
 
 **Example:** *Stripe webhooks — signing secret; retry up to 3 days.*
 
-📊 **Visual:** [Dual-write vs outbox](interview-quick-fire-diagrams.html#dual-write)
+📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
 ### 🟠 Rate limiting
 
@@ -1380,7 +1383,7 @@ flowchart TD
 
 **Example:** *Stripe — PaymentIntent state machine + idempotent API.*
 
-📊 **Visual:** [Idempotency](interview-quick-fire-diagrams.html#idempotency) · [Saga](interview-quick-fire-diagrams.html#saga)
+📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency) · [Saga](interview-quick-fire.html#saga)
 
 ### 🔴 Inventory / wallet balance
 
@@ -1397,7 +1400,7 @@ flowchart TD
 
 **Example:** *Airline — seat row locked for 15 min during checkout.*
 
-📊 **Visual:** [Seat hold 2-phase](interview-quick-fire-diagrams.html#seat-hold)
+📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
 
 ### 🔵 Level 1 — Quick-fire (30s each)
 

@@ -9,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MD_PATH = ROOT / "cheatSheet" / "interview-quick-fire.md"
 HTML_PATH = ROOT / "cheatSheet" / "interview-quick-fire.html"
+DIAGRAMS_HTML_PATH = ROOT / "cheatSheet" / "interview-quick-fire-diagrams.html"
+DIAGRAMS_INC_PATH = ROOT / "cheatSheet" / "quick-fire-diagrams.inc.html"
 
 SEVERITY = {
     "critical": {
@@ -292,8 +294,73 @@ LINK_LABELS = {
     "system_design_cheatsheet_v14.html": "Full cheatsheet",
     "github/v15/index.html": "40 system cards",
     "github/v15/index.md": "40 system cards",
-    "interview-quick-fire-diagrams.html": "Diagrams",
 }
+
+DIAGRAM_LINK_RE = re.compile(
+    r"\[([^\]]+)\]\((?:interview-quick-fire-diagrams|interview-quick-fire)\.html#?([^)]*)\)"
+)
+
+
+def rewrite_visual_html(visual: str) -> str:
+    if not visual:
+        return ""
+
+    out: list[str] = []
+    last = 0
+    for m in DIAGRAM_LINK_RE.finditer(visual):
+        if m.start() > last:
+            out.append(md_inline(visual[last : m.start()]))
+        label = md_inline(m.group(1))
+        did = m.group(2).strip() or m.group(1).lower().replace(" ", "-")
+        if did == "diagrams":
+            did = ""
+        href = f"#{html.escape(did, quote=True)}" if did else "#diagrams"
+        data_diag = (
+            f' data-diag="{html.escape(did, quote=True)}"' if did else ' data-diag="diagrams"'
+        )
+        out.append(f'<a href="{href}" class="diag-link"{data_diag}>{label}</a>')
+        last = m.end()
+    if last < len(visual):
+        out.append(md_inline(visual[last:]))
+    return "".join(out)
+
+
+def rewrite_md_diagram_links(md: str) -> str:
+    return md.replace(
+        "interview-quick-fire-diagrams.html#",
+        "interview-quick-fire.html#",
+    ).replace(
+        "interview-quick-fire-diagrams.html)",
+        "interview-quick-fire.html#diagrams)",
+    )
+
+
+def extract_diagram_ids(inc: str) -> list[str]:
+    return re.findall(r"^\s+id: '([^']+)'", inc, re.M)
+
+
+def parse_diagram_inc(text: str) -> tuple[str, str, str]:
+    css_m = re.search(r"<style id=\"diag-inc-css\">(.*?)</style>", text, re.S)
+    html_m = re.search(r"</style>\s*(.*?)\s*<script id=\"diag-inc-js\">", text, re.S)
+    js_m = re.search(r"<script id=\"diag-inc-js\">(.*?)</script>", text, re.S)
+    return (
+        css_m.group(1) if css_m else "",
+        html_m.group(1).strip() if html_m else "",
+        js_m.group(1) if js_m else "",
+    )
+
+
+def build_diagram_redirect() -> str:
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0;url=interview-quick-fire.html">
+<title>Redirecting…</title>
+<script>location.replace('interview-quick-fire.html'+location.hash);</script>
+</head>
+<body><p>Moved to <a href="interview-quick-fire.html">interview-quick-fire.html</a>.</p></body>
+</html>"""
 
 
 def render_hero(lead_md: str) -> str:
@@ -390,17 +457,23 @@ def enrich_markdown(md: str, sections: list[dict]) -> str:
     if "interview-quick-fire.html" not in md.split("## Navigation")[0]:
         md = md.replace(
             "interview-quick-fire-diagrams.html)",
-            "interview-quick-fire-diagrams.html) · [Colorful view](interview-quick-fire.html)",
+            "interview-quick-fire.html#diagrams)",
             1,
         )
+
     nav_colorful = "- [Colorful HTML view](interview-quick-fire.html) — Notion-style severity callouts\n"
     if nav_colorful not in md:
         md = md.replace("## Navigation\n\n", f"## Navigation\n\n{nav_colorful}", 1)
 
-    return md
+    return rewrite_md_diagram_links(md)
 
 
 def build_html(intro: str, sections: list[dict], md: str = "") -> str:
+    diag_inc = load_diagram_inc() if DIAGRAMS_INC_PATH.exists() else ""
+    diag_css, diag_html, diag_js = parse_diagram_inc(diag_inc) if diag_inc else ("", "", "")
+    diagram_ids = extract_diagram_ids(diag_inc) if diag_inc else []
+    diagram_ids_json = json.dumps(diagram_ids, ensure_ascii=False)
+
     data = []
     for sec in sections:
         if sec["title"] == "Navigation":
@@ -418,7 +491,7 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
                         "staff_plus_html": md_inline(p.get("staff_plus", "")),
                         "trade_html": md_inline(p["trade"]),
                         "example_html": md_inline(p["example"]),
-                        "visual_html": md_inline(p["visual"]) if p["visual"] else "",
+                        "visual_html": rewrite_visual_html(p["visual"]),
                     }
                     for p in sec["patterns"]
                 ],
@@ -439,8 +512,8 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Interview Quick-Fire — Colorful View</title>
-<meta name="description" content="Notion-style system design quick-fire — severity-coded callouts, filters, offline.">
+<title>Interview Quick-Fire — Patterns &amp; Diagrams</title>
+<meta name="description" content="System design quick-fire — severity-coded patterns plus 17 interactive Mermaid diagrams, offline.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23185fa5'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='14' font-family='sans-serif' font-weight='700'>SD</text></svg>">
 <style>
 :root{{
@@ -476,8 +549,17 @@ html[data-theme="dark"]{{
 body{{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.55}}
 a{{color:var(--prep-bdr)}}
 .app{{display:flex;min-height:100vh}}
+.content-area{{flex:1;min-width:0;display:flex;flex-direction:column}}
+.view-shell{{display:none;flex:1;min-height:0}}
+.view-shell.view-active{{display:block}}
+.view-diagrams.view-active{{display:flex;flex-direction:column}}
+.view-diagrams.view-active .diag-app{{height:100vh}}
 .sidebar{{width:280px;background:var(--card);border-right:1px solid rgba(0,0,0,.08);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}}
+.view-tabs{{display:flex;gap:6px;margin-bottom:14px}}
+.view-tabs .vtab{{flex:1;font-size:.78rem;font-weight:600;padding:7px 10px;border-radius:8px;border:1px solid rgba(0,0,0,.1);background:var(--bg);color:var(--muted);cursor:pointer}}
+.view-tabs .vtab.on{{background:var(--prep-bg);border-color:var(--prep-bdr);color:var(--prep-txt)}}
 .main{{flex:1;max-width:920px;padding:28px 32px 80px}}
+.diag-link{{font-weight:500}}
 h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .hero-sub{{color:var(--muted);font-size:1rem;margin:-2px 0 14px}}
 .lead p{{color:var(--muted);margin-bottom:12px;font-size:.95rem;line-height:1.6}}
@@ -543,21 +625,30 @@ code{{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding
   .app{{display:block}}
   .sidebar{{position:relative;height:auto;width:100%;border-right:none;border-bottom:1px solid rgba(0,0,0,.08)}}
   .main{{padding:20px 16px}}
+  .view-diagrams.view-active .diag-app{{height:auto;min-height:calc(100vh - 0px)}}
 }}
 </style>
+<style id="diag-inc-css">{diag_css}</style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
     <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">Quick-fire</div>
-    <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Severity sidebar</div>
-    <div id="sb-nav"></div>
+    <div class="view-tabs">
+      <button class="vtab on" type="button" data-view="patterns">Patterns</button>
+      <button class="vtab" type="button" data-view="diagrams">Diagrams</button>
+    </div>
+    <div id="sb-patterns-tools">
+      <div style="font-size:.75rem;color:var(--muted);margin-bottom:12px">Severity sidebar</div>
+      <div id="sb-nav"></div>
+    </div>
     <div class="links">
       <a href="interview-quick-fire.md">Markdown</a>
-      <a href="interview-quick-fire-diagrams.html">Diagrams</a>
       <a href="index.html">Index</a>
     </div>
   </aside>
+  <div class="content-area">
+  <div id="view-patterns" class="view-shell view-active">
   <main class="main">
     <h1>{html.escape(page_title)}</h1>
     {f'<p class="hero-sub">{md_inline(page_sub)}</p>' if page_sub else ''}
@@ -582,10 +673,83 @@ code{{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding
     </div>
     <div id="root"></div>
   </main>
+  </div>
+  {diag_html}
+  </div>
 </div>
+<script src="vendor/mermaid.min.js"></script>
+<script id="diag-inc-js">
+{diag_js}
+</script>
 <script>
 const SEV = {json.dumps(SEVERITY, ensure_ascii=False)};
 const DATA = {payload};
+const DIAGRAM_IDS = new Set({diagram_ids_json});
+let currentView = 'patterns';
+
+function isDiagramHash(hash) {{
+  const id = (hash || '').replace(/^#/, '');
+  return id === 'diagrams' || DIAGRAM_IDS.has(id);
+}}
+
+function setView(view, opts = {{}}) {{
+  currentView = view;
+  document.getElementById('view-patterns')?.classList.toggle('view-active', view === 'patterns');
+  document.getElementById('view-diagrams')?.classList.toggle('view-active', view === 'diagrams');
+  document.querySelectorAll('.view-tabs .vtab').forEach(b => {{
+    b.classList.toggle('on', b.dataset.view === view);
+  }});
+  const tools = document.getElementById('sb-patterns-tools');
+  if (tools) tools.style.display = view === 'patterns' ? '' : 'none';
+  if (view === 'diagrams' && typeof bootDiagrams === 'function') {{
+    let diagId = opts.diagId;
+    if (diagId === 'diagrams') diagId = null;
+    if (!diagId && isDiagramHash(location.hash)) {{
+      const h = location.hash.replace(/^#/, '');
+      diagId = h === 'diagrams' ? null : h;
+    }}
+    bootDiagrams(diagId || null);
+  }}
+}}
+
+function routeHash() {{
+  if (isDiagramHash(location.hash)) {{
+    const id = location.hash.replace(/^#/, '');
+    setView('diagrams', {{ diagId: id }});
+    return;
+  }}
+  setView('patterns');
+  if (location.hash) {{
+    setTimeout(() => {{
+      const el = document.querySelector(location.hash);
+      if (el) {{
+        el.scrollIntoView({{ behavior: 'smooth' }});
+        el.classList?.add('open');
+      }}
+    }}, 120);
+  }}
+}}
+
+document.querySelectorAll('.view-tabs .vtab').forEach(b => {{
+  b.onclick = () => {{
+    if (b.dataset.view === 'diagrams') {{
+      location.hash = 'diagrams';
+    }} else {{
+      if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      setView('patterns');
+    }}
+  }};
+}});
+
+document.addEventListener('click', e => {{
+  const a = e.target.closest('a.diag-link');
+  if (!a) return;
+  e.preventDefault();
+  const id = a.dataset.diag || (a.getAttribute('href') || '').replace(/^#/, '');
+  if (id) location.hash = id;
+}});
+
+window.addEventListener('hashchange', routeHash);
 
 function render() {{
   const root = document.getElementById('root');
@@ -673,10 +837,14 @@ document.getElementById('expand').onclick = () => {{
 document.querySelectorAll('.fchip').forEach(x => x.classList.remove('on'));
 ['critical','high','important','pattern'].forEach(f => document.querySelector(`.fchip[data-f="${{f}}"]`)?.classList.add('on'));
 render();
-if (location.hash) setTimeout(() => document.querySelector(location.hash)?.scrollIntoView({{behavior:'smooth'}}), 100);
+routeHash();
 </script>
 </body>
 </html>"""
+
+
+def load_diagram_inc() -> str:
+    return DIAGRAMS_INC_PATH.read_text(encoding="utf-8")
 
 
 def main():
@@ -685,9 +853,11 @@ def main():
     md = enrich_markdown(md, sections)
     MD_PATH.write_text(md, encoding="utf-8")
     HTML_PATH.write_text(build_html(intro, sections, md), encoding="utf-8")
+    DIAGRAMS_HTML_PATH.write_text(build_diagram_redirect(), encoding="utf-8")
     n_patterns = sum(len(s["patterns"]) for s in sections)
     print(f"Updated {MD_PATH.name} with severity badges & callouts")
-    print(f"Wrote {HTML_PATH.name} ({n_patterns} patterns)")
+    print(f"Wrote {HTML_PATH.name} ({n_patterns} patterns, combined with diagrams)")
+    print(f"Wrote {DIAGRAMS_HTML_PATH.name} (redirect to combined page)")
 
 
 if __name__ == "__main__":

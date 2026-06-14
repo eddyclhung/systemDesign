@@ -1,0 +1,609 @@
+<!-- AUTO: diagram bundle for combined quick-fire page -->
+<style id="diag-inc-css">
+:root{
+  --bg-pri:#fff;--bg-sec:#f5f5f4;--bg-ter:#ece9e4;
+  --bg-info:#e6f1fb;--bg-succ:#eaf3de;--bg-warn:#faeeda;--bg-dang:#fcebeb;
+  --txt-pri:#1a1a1a;--txt-sec:#4a4a4a;--txt-ter:#888780;
+  --txt-info:#0c447c;--txt-succ:#27500a;--txt-warn:#633806;--txt-dang:#791f1f;
+  --bdr-ter:rgba(0,0,0,.12);--bdr-sec:rgba(0,0,0,.22);
+  --bdr-info:#185fa5;--bdr-succ:#3b6d11;--bdr-warn:#854f0b;--bdr-dang:#a32d2d;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --r:8px;
+}
+html[data-theme="dark"]{
+  --bg-pri:#0d1117;--bg-sec:#161b22;--bg-ter:#0a0e14;
+  --bg-info:#0c1d2e;--bg-succ:#0d1f08;--bg-warn:#1e1204;--bg-dang:#190a0a;
+  --txt-pri:#e6edf3;--txt-sec:#8b949e;--txt-ter:#6e7681;
+  --txt-info:#58a6ff;--txt-succ:#3fb950;--txt-warn:#e3b341;--txt-dang:#f85149;
+  --bdr-ter:rgba(255,255,255,.1);--bdr-sec:rgba(255,255,255,.2);
+  --bdr-info:#1f6feb;--bdr-succ:#2ea043;--bdr-warn:#bb8009;--bdr-dang:#da3633;
+}
+@media(prefers-color-scheme:dark){
+  html:not([data-theme="light"]){
+    --bg-pri:#0d1117;--bg-sec:#161b22;--bg-ter:#0a0e14;
+    --bg-info:#0c1d2e;--bg-succ:#0d1f08;--bg-warn:#1e1204;--bg-dang:#190a0a;
+    --txt-pri:#e6edf3;--txt-sec:#8b949e;--txt-ter:#6e7681;
+    --txt-info:#58a6ff;--txt-succ:#3fb950;--txt-warn:#e3b341;--txt-dang:#f85149;
+    --bdr-ter:rgba(255,255,255,.1);--bdr-sec:rgba(255,255,255,.2);
+    --bdr-info:#1f6feb;--bdr-succ:#2ea043;--bdr-warn:#bb8009;--bdr-dang:#da3633;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+/* height via view shell */
+.view-diagrams{font-family:var(--font);color:var(--txt-pri);background:var(--bg-ter);-webkit-font-smoothing:antialiased}
+.view-diagrams .diag-app{display:flex;height:100vh;overflow:hidden}
+.view-diagrams .diag-sidebar{width:260px;flex-shrink:0;background:var(--bg-pri);border-right:.5px solid var(--bdr-ter);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:14px 12px 10px;border-bottom:.5px solid var(--bdr-ter)}
+.sb-head h1{font-size:13px;font-weight:700;line-height:1.35}
+.sb-head p{font-size:10px;color:var(--txt-ter);margin-top:4px;line-height:1.45}
+.sb-head a{color:var(--txt-info);text-decoration:none}
+.sb-head a:hover{text-decoration:underline}
+#sb-srch{margin:10px 12px 6px;padding:7px 10px;font-size:12px;border-radius:6px;border:.5px solid var(--bdr-sec);background:var(--bg-sec);color:var(--txt-pri);width:calc(100% - 24px);outline:none}
+.sb-list{flex:1;overflow-y:auto;padding:4px 8px 16px}
+.sb-sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-ter);padding:10px 6px 4px}
+.sb-item{display:block;width:100%;text-align:left;padding:6px 10px;border:none;background:none;border-radius:6px;font-size:12px;color:var(--txt-sec);cursor:pointer;margin-bottom:1px}
+.sb-item:hover{background:var(--bg-sec);color:var(--txt-pri)}
+.sb-item.on{background:var(--bg-info);color:var(--txt-info);font-weight:600}
+.view-diagrams .diag-main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--bg-pri);border-bottom:.5px solid var(--bdr-ter);flex-shrink:0;flex-wrap:wrap}
+.tb-title{font-size:13px;font-weight:600;flex:1;min-width:120px}
+.tb-btn{font-size:11px;padding:5px 10px;border-radius:100px;border:.5px solid var(--bdr-sec);background:transparent;color:var(--txt-sec);cursor:pointer}
+.tb-btn:hover,.tb-btn.on{background:var(--bg-info);color:var(--txt-info);border-color:var(--bdr-info)}
+.content{flex:1;overflow-y:auto;padding:20px 24px 40px}
+.panel{display:none;max-width:1100px;margin:0 auto}
+.panel.on{display:block}
+.panel h2{font-size:1.35rem;margin-bottom:6px}
+.panel .sub{font-size:.9rem;color:var(--txt-sec);line-height:1.55;margin-bottom:14px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.tag{font-size:.72rem;padding:3px 9px;border-radius:100px;background:var(--bg-info);color:var(--txt-info)}
+.tag.fail{background:var(--bg-dang);color:var(--txt-dang)}
+.tag.flow{background:var(--bg-succ);color:var(--txt-succ)}
+.covers{font-size:.85rem;color:var(--txt-sec);line-height:1.6;margin-bottom:16px;padding:10px 14px;background:var(--bg-sec);border-radius:var(--r);border-left:3px solid var(--bdr-info)}
+.variant-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.vtab{font-size:12px;font-weight:500;padding:6px 14px;border-radius:100px;border:.5px solid var(--bdr-sec);background:var(--bg-pri);color:var(--txt-sec);cursor:pointer}
+.vtab.on{background:var(--bg-dang);color:var(--txt-dang);border-color:var(--bdr-dang)}
+.vtab.fix.on{background:var(--bg-succ);color:var(--txt-succ);border-color:var(--bdr-succ)}
+.diag-wrap{background:var(--bg-pri);border:1px solid var(--bdr-ter);border-radius:12px;overflow:hidden;margin-bottom:16px}
+.diag-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg-sec);border-bottom:.5px solid var(--bdr-ter);flex-wrap:wrap}
+.diag-toolbar span{font-size:11px;color:var(--txt-ter);margin-right:auto}
+.zbtn{font-size:11px;padding:4px 10px;border-radius:6px;border:.5px solid var(--bdr-sec);background:var(--bg-pri);color:var(--txt-sec);cursor:pointer;min-width:32px}
+.zbtn:hover{color:var(--txt-info);border-color:var(--bdr-info)}
+.diag-viewport{overflow:auto;min-height:420px;max-height:72vh;padding:32px 24px;cursor:grab;touch-action:none;background:var(--bg-pri)}
+.diag-viewport.dragging{cursor:grabbing;user-select:none}
+.diag-inner{transform-origin:0 0;transition:transform .12s ease;display:inline-block;min-width:100%}
+.diag-inner svg{max-width:none!important;height:auto!important}
+.hint{font-size:11px;color:var(--txt-ter);margin-bottom:20px}
+.hint kbd{font-size:10px;padding:2px 5px;border-radius:4px;border:.5px solid var(--bdr-sec);background:var(--bg-sec)}
+.nav-row{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
+.nav-row button{font-size:12px;padding:8px 14px;border-radius:8px;border:.5px solid var(--bdr-sec);background:var(--bg-pri);color:var(--txt-sec);cursor:pointer}
+.nav-row button:hover{border-color:var(--bdr-info);color:var(--txt-info)}
+.sb-toggle{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--bg-pri);border:.5px solid var(--bdr-sec);border-radius:8px;padding:8px 11px;cursor:pointer;font-size:16px}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
+@media(max-width:768px){
+  .view-diagrams .diag-app{display:block;height:auto;overflow:visible}
+  .view-diagrams .diag-main{overflow:visible}
+  .view-diagrams .diag-sidebar{position:fixed;top:0;left:0;height:100vh;z-index:100;transform:translateX(-100%);transition:transform .22s}
+  .sidebar.open{transform:translateX(0)}
+  .sb-toggle{display:block}
+  .sb-overlay.open{display:block}
+  .topbar{padding-left:52px}
+  .content{padding:16px}
+  .diag-viewport{min-height:320px;max-height:none}
+}
+.diag-wrap:fullscreen{background:var(--bg-pri);border-radius:0;display:flex;flex-direction:column}
+.diag-wrap:fullscreen .diag-viewport{flex:1;max-height:none}
+
+</style>
+<div id="view-diagrams" class="view-shell view-diagrams">
+<button class="sb-toggle" id="diag-sb-tog" aria-label="Menu">☰</button>
+<div class="sb-overlay" id="diag-sb-ov"></div>
+<div class="diag-app">
+  <aside class="sidebar" id="diag-sidebar">
+    <div class="sb-head">
+      <h1>Diagram archetypes</h1>
+      <p>17 archetypes · fully offline · <span>17 archetypes · zoom · fullscreen</span></p>
+    </div>
+    <input type="search" id="diag-sb-srch" placeholder="Filter diagrams…" autocomplete="off">
+    <div class="sb-list" id="diag-sb-list"></div>
+  </aside>
+  <div class="diag-main">
+    <div class="topbar">
+      <span class="tb-title" id="diag-tb-title">Select a diagram</span>
+      <button class="tb-btn" id="diag-btn-theme" title="Toggle theme">◐ Theme</button>
+      <button class="tb-btn" id="diag-btn-fit" title="Fit to view">Fit</button>
+    </div>
+    <div class="content" id="diag-panels"></div>
+  </div>
+</div>
+</div>
+<script id="diag-inc-js">
+const DIAGRAMS = [
+  {
+    id: 'cache-aside', title: 'Cache-aside', cat: 'flows', kind: 'flow',
+    covers: 'Reduce DB read load, stale cache after update, CDN as edge cache layer.',
+    tags: ['reads', 'caching'],
+    mermaid: `flowchart LR
+    C[Client] --> A[App]
+    A --> R{Redis hit?}
+    R -->|yes| A
+    R -->|miss| D[(Primary DB)]
+    D --> A
+    A -->|populate| R
+    W[Write] --> D
+    W -->|invalidate| R`
+  },
+  {
+    id: 'thundering-herd', title: 'Thundering herd', cat: 'failures', kind: 'failure',
+    covers: 'Thundering herd, cache stampede — synchronized TTL expiry vs single-flight fix.',
+    tags: ['failure', 'caching'],
+    variants: [
+      { id: 'bad', label: 'Without fix', cls: '', mermaid: `sequenceDiagram
+    participant C1 as Clients x1000
+    participant Redis
+    participant DB as Primary DB
+    Note over Redis: TTL expires together
+    C1->>Redis: GET all miss
+    C1->>DB: SELECT x1000
+    Note over DB: Pool exhausted` },
+      { id: 'fix', label: 'Single-flight fix', cls: 'fix', mermaid: `sequenceDiagram
+    participant C1 as Client A
+    participant C2 as Clients B..N
+    participant App
+    participant Redis
+    participant DB
+    C1->>App: GET key
+    C2->>App: GET key
+    App->>App: lock key single-flight
+    App->>DB: one SELECT
+    App->>Redis: SET
+    App-->>C1: 200 OK
+    App-->>C2: 200 same payload` }
+    ]
+  },
+  {
+    id: 'retry-storm', title: 'Retry storm', cat: 'failures', kind: 'failure',
+    covers: 'Retry storm, metastable failure, cascading failure, circuit breaker.',
+    tags: ['failure', 'resilience'],
+    mermaid: `flowchart TD
+    C[Clients timeout] -->|retry x3| API[API at 80% CPU]
+    API -->|slower| C
+    API --> CB{Circuit breaker}
+    CB -->|open| F[Fail fast 503]
+    CB -->|half-open| P[Probe 1 req/s]
+    F --> Q[Queue async reconcile]`
+  },
+  {
+    id: 'hot-key', title: 'Hot key', cat: 'failures', kind: 'failure',
+    covers: 'Hot partition, viral URL, segmented counters, celebrity fan-out threshold.',
+    tags: ['failure', 'caching'],
+    mermaid: `flowchart TD
+    subgraph bad[One Redis key overload]
+        K[viral:url:abc] --> O[Overload]
+    end
+    subgraph fix[Mitigations]
+        L[Local LRU per app] --> K2[Logical shards url:abc:1..8]
+        K2 --> CDN[CDN edge cache]
+    end`
+  },
+  {
+    id: 'split-brain', title: 'Split brain', cat: 'failures', kind: 'failure',
+    covers: 'Network partition, dual primary, fencing tokens, quorum writes.',
+    tags: ['failure', 'consistency'],
+    mermaid: `flowchart TD
+    P[Primary AZ-a] ---X--- R[Replica AZ-b]
+    P -->|both think primary| W1[Writes set A]
+    R --> W2[Writes set B]
+    W1 --> D[Divergent data]
+    W2 --> D
+    Q[Quorum / fencing token] -.->|fix| P`
+  },
+  {
+    id: 'poison-message', title: 'Poison message', cat: 'failures', kind: 'failure',
+    covers: 'Poison pill, head-of-line blocking — split fast/slow queues.',
+    tags: ['failure', 'messaging'],
+    mermaid: `flowchart LR
+    P[Producer] --> K[Kafka topic]
+    K --> W[Worker]
+    W -->|crash loop| W
+    W -->|attempt 3| DLQ[Dead letter queue]
+    DLQ --> Ops[Alert + manual replay]`
+  },
+  {
+    id: 'n1-batch', title: 'N+1 vs batch', cat: 'failures', kind: 'failure',
+    covers: 'N+1 queries, DataLoader pattern, batch WHERE id IN.',
+    tags: ['failure', 'reads'],
+    mermaid: `flowchart TD
+    subgraph n1[N+1 bad]
+        A1[Load 500 posts] --> Q1[500 profile queries]
+    end
+    subgraph batch[DataLoader good]
+        A2[Load 500 posts] --> Q2[1 query WHERE id IN]
+    end`
+  },
+  {
+    id: 'connection-pool', title: 'Connection pool exhaustion', cat: 'failures', kind: 'failure',
+    covers: 'Pool saturation, slow transactions, retry storm feedback loop.',
+    tags: ['failure', 'database'],
+    mermaid: `flowchart TD
+    Apps[100 app instances] --> Pool[PgBouncer max 200]
+    Pool -->|held by slow TX| Block[New requests wait]
+    Block -->|30s timeout| Storm[Retry storm]
+    T[Query timeout + right-size pool] -.-> Pool`
+  },
+  {
+    id: 'replica-lag', title: 'Replica lag', cat: 'failures', kind: 'failure',
+    covers: 'Stale read, read-your-writes, route to primary after write.',
+    tags: ['failure', 'consistency'],
+    mermaid: `sequenceDiagram
+    participant U as User
+    participant App
+    participant P as Primary
+    participant R as Replica lag 30s
+    U->>App: POST comment
+    App->>P: INSERT
+    U->>App: GET feed
+    App->>R: SELECT misses new comment
+    Note over App: Fix RYW to Primary 5s`
+  },
+  {
+    id: 'dual-write', title: 'Dual-write vs outbox', cat: 'flows', kind: 'flow',
+    covers: 'Dual-write drift, Elasticsearch index, webhook outbox, CDC.',
+    tags: ['writes', 'consistency'],
+    mermaid: `flowchart TD
+    subgraph bad[Dual-write risky]
+        App1[App] --> DB[(DB)]
+        App1 --> ES[Elasticsearch]
+    end
+    subgraph good[Outbox + CDC]
+        App2[App] --> DB2[(DB + outbox row)]
+        DB2 --> CDC[Debezium relay]
+        CDC --> ES2[Elasticsearch]
+    end`
+  },
+  {
+    id: 'fan-out', title: 'Fan-out hybrid', cat: 'flows', kind: 'flow',
+    covers: 'Push vs pull feeds, celebrity threshold, push notification stagger.',
+    tags: ['fan-out', 'writes'],
+    mermaid: `flowchart TD
+    Post[New post] --> H{followers count}
+    H -->|under 10K| Push[Push to follower feeds via Kafka]
+    H -->|celebrity| Pull[Store post only pull on read]
+    Push --> Redis[Redis timelines]
+    Pull --> Store[(Post store)]`
+  },
+  {
+    id: 'saga', title: 'Saga', cat: 'flows', kind: 'flow',
+    covers: 'Cross-service transactions, compensating transactions, payment + inventory.',
+    tags: ['consistency', 'payments'],
+    mermaid: `sequenceDiagram
+    participant O as Orchestrator
+    participant Pay as Payment
+    participant Inv as Inventory
+    O->>Pay: charge
+    Pay-->>O: OK
+    O->>Inv: reserve
+    Inv-->>O: fail
+    O->>Pay: compensate refund`
+  },
+  {
+    id: 'idempotency', title: 'Idempotency', cat: 'flows', kind: 'flow',
+    covers: 'Idempotency-Key header, safe retries, payment deduplication.',
+    tags: ['writes', 'payments'],
+    mermaid: `sequenceDiagram
+    participant C as Client
+    participant API
+    participant Store as Idempotency store
+    C->>API: POST key=abc
+    API->>Store: insert abc
+    API-->>C: 201 charged
+    C->>API: POST key=abc retry
+    API->>Store: found abc
+    API-->>C: 201 same response`
+  },
+  {
+    id: 'seat-hold', title: 'Seat hold 2-phase', cat: 'flows', kind: 'flow',
+    covers: 'Double booking, flash sale, Redis soft hold + PG hard commit.',
+    tags: ['contention', 'payments'],
+    mermaid: `sequenceDiagram
+    participant U as User
+    participant API
+    participant Redis
+    participant PG as Postgres
+    U->>API: book seat
+    API->>Redis: SETNX seat TTL 10m
+    API-->>U: held
+    U->>API: pay
+    API->>PG: BEGIN SELECT FOR UPDATE commit
+    API->>Redis: DEL hold`
+  },
+  {
+    id: 'straggler', title: 'Scatter-gather straggler', cat: 'failures', kind: 'failure',
+    covers: 'Slow shard, hedged reads, partial results, timeout per shard.',
+    tags: ['failure', 'reads'],
+    mermaid: `flowchart TD
+    Q[Query coordinator] --> S1[Shard 1 20ms]
+    Q --> S2[Shard 2 20ms]
+    Q --> S3[Shard 3 3000ms straggler]
+    Q -->|timeout 500ms| P[Return partial 19/20 shards]`
+  },
+  {
+    id: 'token-bucket', title: 'Token bucket rate limit', cat: 'flows', kind: 'flow',
+    covers: 'Rate limiting, DDoS edge control, burst allowance vs steady rate.',
+    tags: ['security'],
+    mermaid: `flowchart LR
+    R[Refill R tokens/sec] --> B[Bucket max B burst]
+    Req[Request] -->|cost 1 token| B
+    B -->|tokens OK| Allow[Forward to API]
+    B -->|empty| Deny[429 Retry-After]`
+  },
+  {
+    id: 'websocket-scale', title: 'WebSocket at scale', cat: 'flows', kind: 'flow',
+    covers: 'Connection registry, Redis pub/sub bridge, sticky sessions vs shared bus.',
+    tags: ['real-time'],
+    mermaid: `flowchart LR
+    C1[User A] --> WS1[WS server 1]
+    C2[User B] --> WS2[WS server 2]
+    WS1 -->|publish| PS[Redis pub/sub]
+    PS -->|subscribe| WS2
+    WS1 --> Reg[(user_id to server_id)]`
+  }
+];
+
+let currentId = null;
+let zoom = 1;
+let panX = 0, panY = 0;
+let mermaidReady = false;
+
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  if (t === 'dark') return true;
+  if (t === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function initMermaid() {
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDark() ? 'dark' : 'default',
+    securityLevel: 'loose',
+    flowchart: { useMaxWidth: false, htmlLabels: true, curve: 'basis' },
+    sequence: { useMaxWidth: false, actorMargin: 90, messageMargin: 45, mirrorActors: true, wrap: true },
+    themeVariables: { fontSize: '17px', fontFamily: '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif' }
+  });
+  mermaidReady = true;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function buildSidebar() {
+  const list = document.getElementById('diag-sb-list');
+  const failures = DIAGRAMS.filter(d => d.cat === 'failures');
+  const flows = DIAGRAMS.filter(d => d.cat === 'flows');
+  let html = '<div class="sb-sec">Failure modes</div>';
+  failures.forEach(d => { html += `<button class="sb-item" data-id="${d.id}" type="button">${esc(d.title)}</button>`; });
+  html += '<div class="sb-sec">Core flows</div>';
+  flows.forEach(d => { html += `<button class="sb-item" data-id="${d.id}" type="button">${esc(d.title)}</button>`; });
+  list.innerHTML = html;
+  list.querySelectorAll('.sb-item').forEach(btn => {
+    btn.addEventListener('click', () => { show(btn.dataset.id); closeSidebar(); });
+  });
+}
+
+function buildPanels() {
+  const root = document.getElementById('diag-panels');
+  root.innerHTML = DIAGRAMS.map(d => {
+    const tagCls = d.kind === 'failure' ? 'fail' : 'flow';
+    let tabs = '';
+    let bodies = '';
+    if (d.variants) {
+      tabs = '<div class="variant-tabs">' + d.variants.map((v, i) =>
+        `<button class="vtab ${v.cls}${i === 0 ? ' on' : ''}" data-panel="${d.id}" data-var="${v.id}" type="button">${esc(v.label)}</button>`
+      ).join('') + '</div>';
+      bodies = d.variants.map((v, i) =>
+        `<div class="variant-body" data-panel="${d.id}" data-var="${v.id}" style="${i ? 'display:none' : ''}">${diagBlock(d.id, v.id, v.mermaid)}</div>`
+      ).join('');
+    } else {
+      bodies = diagBlock(d.id, 'main', d.mermaid);
+    }
+    return `<section class="panel" id="panel-${d.id}" data-title="${esc(d.title)}">
+      <h2>${esc(d.title)}</h2>
+      <p class="sub">Redraw this on a whiteboard in 60 seconds — label boxes for the system you're designing.</p>
+      <div class="tags">${d.tags.map(t => `<span class="tag ${tagCls}">${esc(t)}</span>`).join('')}</div>
+      <div class="covers"><strong>Covers:</strong> ${esc(d.covers)}</div>
+      ${tabs}${bodies}
+      <p class="hint">Scroll to zoom · drag to pan · <kbd>+</kbd>/<kbd>−</kbd> zoom · <kbd>←</kbd><kbd>→</kbd> prev/next · double-click diagram to reset</p>
+      <div class="nav-row">
+        <button type="button" data-nav="prev">← Previous</button>
+        <button type="button" data-nav="next">Next →</button>
+      </div>
+    </section>`;
+  }).join('');
+
+  root.querySelectorAll('.vtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const pid = tab.dataset.panel, vid = tab.dataset.var;
+      root.querySelectorAll(`.vtab[data-panel="${pid}"]`).forEach(t => t.classList.toggle('on', t === tab));
+      root.querySelectorAll(`.variant-body[data-panel="${pid}"]`).forEach(b => {
+        b.style.display = b.dataset.var === vid ? '' : 'none';
+      });
+      resetView(pid, vid);
+    });
+  });
+
+  root.querySelectorAll('[data-nav]').forEach(btn => {
+    btn.addEventListener('click', () => navigate(btn.dataset.nav === 'next' ? 1 : -1));
+  });
+
+  setupDiagInteractions();
+}
+
+function diagBlock(panelId, varId, src) {
+  const uid = `${panelId}-${varId}`;
+  return `<div class="diag-wrap" id="wrap-${uid}">
+    <div class="diag-toolbar">
+      <span>Drag to pan · use +/− to zoom</span>
+      <button class="zbtn" type="button" data-zoom="-">−</button>
+      <button class="zbtn" type="button" data-zoom="0">100%</button>
+      <button class="zbtn" type="button" data-zoom="+">+</button>
+      <button class="zbtn" type="button" data-fs="${uid}">⛶ Fullscreen</button>
+    </div>
+    <div class="diag-viewport" data-vp="${uid}">
+      <div class="diag-inner" data-inner="${uid}">
+        <pre class="mermaid" id="mm-${uid}">${src}</pre>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function renderAllMermaid() {
+  const nodes = document.querySelectorAll('.mermaid');
+  for (const el of nodes) {
+    const id = el.id.replace('mm-', 'svg-');
+    try {
+      const { svg } = await mermaid.render(id, el.textContent.trim());
+      el.outerHTML = svg;
+    } catch (e) {
+      el.outerHTML = `<p style="color:var(--txt-dang);padding:12px">Render error: ${esc(String(e.message || e))}</p>`;
+    }
+  }
+}
+
+function setupDiagInteractions() {
+  document.querySelectorAll('.zbtn[data-zoom]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = btn.dataset.zoom;
+      if (d === '+') setZoom(zoom + 0.15);
+      else if (d === '-') setZoom(zoom - 0.15);
+      else setZoom(1, true);
+    });
+  });
+  document.querySelectorAll('.zbtn[data-fs]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = document.getElementById('wrap-' + btn.dataset.fs);
+      if (wrap.requestFullscreen) wrap.requestFullscreen();
+      else wrap.webkitRequestFullscreen?.();
+    });
+  });
+  document.querySelectorAll('.diag-viewport').forEach(vp => {
+    let dragging = false, sx, sy, spx, spy;
+    vp.addEventListener('wheel', e => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom(zoom + (e.deltaY < 0 ? 0.1 : -0.1));
+      }
+    }, { passive: false });
+    vp.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      dragging = true;
+      sx = e.clientX; sy = e.clientY;
+      spx = panX; spy = panY;
+      vp.classList.add('dragging');
+    });
+    window.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      panX = spx + (e.clientX - sx);
+      panY = spy + (e.clientY - sy);
+      applyTransform();
+    });
+    window.addEventListener('mouseup', () => {
+      dragging = false;
+      vp.classList.remove('dragging');
+    });
+    vp.addEventListener('dblclick', () => resetViewForVp(vp));
+  });
+}
+
+function applyTransform() {
+  document.querySelectorAll('.diag-inner').forEach(el => {
+    el.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+  });
+}
+
+function setZoom(z, resetPan) {
+  zoom = Math.min(2.5, Math.max(0.35, z));
+  if (resetPan) { panX = 0; panY = 0; }
+  applyTransform();
+}
+
+function resetView(panelId, varId) {
+  zoom = 1; panX = 0; panY = 0;
+  applyTransform();
+}
+
+function resetViewForVp(vp) {
+  zoom = 1; panX = 0; panY = 0;
+  applyTransform();
+}
+
+function show(id) {
+  if (!DIAGRAMS.find(d => d.id === id)) return;
+  currentId = id;
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === 'panel-' + id));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  const d = DIAGRAMS.find(x => x.id === id);
+  document.getElementById('diag-tb-title').textContent = d.title;
+  location.hash = id;
+  resetView(id);
+  document.querySelector('.panel.on')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function navigate(dir) {
+  const i = DIAGRAMS.findIndex(d => d.id === currentId);
+  const j = (i + dir + DIAGRAMS.length) % DIAGRAMS.length;
+  show(DIAGRAMS[j].id);
+}
+
+function filterSidebar(q) {
+  const qq = q.toLowerCase().trim();
+  document.querySelectorAll('.sb-item').forEach(btn => {
+    const d = DIAGRAMS.find(x => x.id === btn.dataset.id);
+    const hay = (d.title + ' ' + d.covers + ' ' + d.tags.join(' ')).toLowerCase();
+    btn.style.display = !qq || hay.includes(qq) ? '' : 'none';
+  });
+}
+
+function closeSidebar() {
+  document.getElementById('diag-sidebar').classList.remove('open');
+  document.getElementById('diag-sb-ov').classList.remove('open');
+}
+
+function toggleSidebar() {
+  document.getElementById('diag-sidebar').classList.toggle('open');
+  document.getElementById('diag-sb-ov').classList.toggle('open');
+}
+
+document.getElementById('diag-sb-tog').onclick = toggleSidebar;
+document.getElementById('diag-sb-ov').onclick = closeSidebar;
+document.getElementById('diag-sb-srch').oninput = e => filterSidebar(e.target.value);
+document.getElementById('diag-btn-fit').onclick = () => setZoom(1, true);
+
+document.getElementById('diag-btn-theme').onclick = () => {
+  const dark = isDark();
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  localStorage.setItem('qf-color-theme', document.documentElement.dataset.theme);
+  location.reload();
+};
+
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input')) return;
+  if (e.key === 'ArrowRight') navigate(1);
+  if (e.key === 'ArrowLeft') navigate(-1);
+  if (e.key === '+' || e.key === '=') setZoom(zoom + 0.15);
+  if (e.key === '-') setZoom(zoom - 0.15);
+  if (e.key === '0') setZoom(1, true);
+});
+
+window.bootDiagrams = async function(hashId) {
+  if (window._diagramsBooted) {
+    if (hashId && DIAGRAMS.find(d => d.id === hashId)) show(hashId);
+    return;
+  }
+  initMermaid();
+  buildSidebar();
+  buildPanels();
+  await renderAllMermaid();
+  window._diagramsBooted = true;
+  const hash = hashId || location.hash.replace('#', '');
+  show(DIAGRAMS.find(d => d.id === hash)?.id || DIAGRAMS[0].id);
+};
+</script>
