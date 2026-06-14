@@ -511,7 +511,7 @@ def main():
     OUT.write_text(out, encoding="utf-8")
     print(f"Wrote {OUT.relative_to(ROOT)}")
 
-    # CI/Pages only: inject pre-rendered cards into v14 for deploy (git source stays lean).
+    # Also patch v14 for git/Pages branch deploy (/cheatSheet/ serves repo files, not CI artifact).
     if pages_deploy:
         v14_pages = patch_v14_for_pages(v15, systems)
         SRC.write_text(v14_pages, encoding="utf-8")
