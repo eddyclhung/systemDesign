@@ -17,6 +17,9 @@
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono","Fira Code","Cascadia Code",Consolas,monospace;
   --r:8px;--rl:12px;
+  --card-col-min:300px;
+  --card-col-pref:40cqw;
+  --card-col-max:25cqw;
 }
 @media(prefers-color-scheme:dark){
   :root{
@@ -67,10 +70,10 @@ body{font-family:var(--font);color:var(--txt-pri);background:var(--bg-ter);-webk
 .sb-overlay.open{display:block}
 
 /* ── Main scroll area ── */
-.main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;min-width:0;container-type:inline-size;container-name:main}
 
 /* ── Topbar ── */
-.topbar{position:sticky;top:0;z-index:50;background:var(--bg-pri);border-bottom:.5px solid var(--bdr-ter);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.topbar{position:sticky;top:0;z-index:50;background:var(--bg-pri);border-bottom:.5px solid var(--bdr-ter);padding:8px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
 
 /* ── Mobile ── */
 @media(max-width:768px){
@@ -132,10 +135,11 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
 /* section headers */
 .sec-hdr{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-ter);padding:20px 16px 8px;display:flex;align-items:center;gap:12px}
 .sec-hdr::after{content:'';flex:1;height:.5px;background:var(--bdr-ter)}
-/* grid */
-.grid{display:grid;width:100%;max-width:100%;grid-template-columns:minmax(0,1fr);gap:0;border-top:.5px solid var(--bdr-ter);border-left:.5px solid var(--bdr-ter)}
-@media(min-width:1400px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(min-width:2200px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* grid — fluid columns from main panel width (sidebar-aware via container queries) */
+.grid{display:grid;width:100%;max-width:100%;grid-template-columns:repeat(auto-fit,minmax(min(100%,clamp(var(--card-col-min),var(--card-col-pref),var(--card-col-max))),1fr));gap:0;border-top:.5px solid var(--bdr-ter);border-left:.5px solid var(--bdr-ter)}
+@supports not (container-type:inline-size){
+  .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,clamp(300px,calc((100vw - 260px) * 0.42),480px)),1fr))}
+}
 /* card */
 .card{background:var(--bg-pri);border-right:.5px solid var(--bdr-ter);border-bottom:.5px solid var(--bdr-ter);display:flex;flex-direction:column;transition:outline .1s;min-width:0;max-width:100%;overflow:hidden}
 .card-flash{outline:2px solid var(--bdr-info);outline-offset:-2px}
