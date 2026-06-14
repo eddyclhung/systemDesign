@@ -83,7 +83,7 @@ Validate card data after edits:
 
 ```bash
 python3 scripts/validate_systems.py
-python3 scripts/build_github_view.py      # regenerate Markdown
+python3 scripts/build_github_view.py      # regenerate Markdown + Pages landing HTML
 python3 scripts/build_prerendered_html.py  # regenerate *_github.html
 python3 scripts/build_quick_fire_html.py   # regenerate interview-quick-fire.html
 python3 scripts/enrich_quick_fire_ladder.py  # Weak/Strong/Staff+ on quick-fire patterns
