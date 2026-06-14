@@ -17,7 +17,6 @@
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono","Fira Code","Cascadia Code",Consolas,monospace;
   --r:8px;--rl:12px;
-  --content-zoom:1.5;
 }
 @media(prefers-color-scheme:dark){
   :root{
@@ -91,14 +90,9 @@ body{font-family:var(--font);color:var(--txt-pri);background:var(--bg-ter);-webk
 .fb.hard.on{background:var(--bg-dang);color:var(--txt-dang);border-color:var(--bdr-dang)}
 #srch{font-size:12px;padding:5px 10px;border-radius:6px;border:.5px solid var(--bdr-sec);background:var(--bg-sec);color:var(--txt-pri);width:min(200px,28vw);outline:none}
 #srch:focus{border-color:var(--bdr-info)}
-.font-ctl{display:flex;align-items:center;gap:6px;padding:2px 8px;border:.5px solid var(--bdr-sec);border-radius:100px;color:var(--txt-sec);white-space:nowrap}
-.font-ctl span{font-size:11px;font-weight:500}
-.font-ctl input{width:90px;accent-color:var(--bdr-info)}
-.font-ctl output{font-size:10px;color:var(--txt-ter);min-width:34px;text-align:right}
 .tb-btn{font-size:11px;font-weight:500;padding:4px 10px;border-radius:100px;border:.5px solid var(--bdr-sec);background:transparent;color:var(--txt-sec);cursor:pointer;white-space:nowrap}
 .tb-btn:hover,.tb-btn.on{background:var(--bg-info);color:var(--txt-info);border-color:var(--bdr-info)}
 .card-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 14px;border-bottom:.5px solid var(--bdr-ter);background:var(--bg-sec);font-size:11px}
-body.system-list .card-nav{display:none!important}
 .card-nav-btns{display:flex;gap:4px;flex-wrap:wrap}
 .cn-btn{padding:3px 8px;border-radius:5px;border:.5px solid var(--bdr-sec);background:var(--bg-pri);color:var(--txt-sec);cursor:pointer;font-size:11px}
 .cn-btn:hover{color:var(--txt-pri);border-color:var(--bdr-info)}
@@ -125,7 +119,6 @@ body.system-list .card-nav{display:none!important}
 body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],body.interview-mode .tab[data-tab="x"],body.interview-mode .tab[data-tab="q"],body.interview-mode .tab[data-tab="v"],body.interview-mode .tab[data-tab="w"],body.interview-mode .tab[data-tab="a"]{display:none}
 .kbd-hint{font-size:10px;color:var(--txt-ter);margin-left:auto;white-space:nowrap}
 @media(max-width:900px){.kbd-hint{display:none}}
-@media(max-width:640px){.font-ctl output{display:none}.font-ctl input{width:70px}}
 @media print{
   .sidebar,.sb-toggle,.sb-overlay,.topbar,.card-nav,.copy-btn,.studied-lbl{display:none!important}
   .app-shell,.main{height:auto;overflow:visible}
@@ -136,13 +129,11 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
   body.interview-mode .tab{display:none!important}
   body.interview-mode .tab[data-tab="p"],body.interview-mode .tab[data-tab="k"],body.interview-mode .tab[data-tab="t"],body.interview-mode .tab[data-tab="d"],body.interview-mode .tab[data-tab="s"]{display:inline-block!important}
 }
-.main > .fw,.main > .sec-hdr,.main > .grid,footer{zoom:var(--content-zoom)}
 /* section headers */
 .sec-hdr{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.1em;color:var(--txt-ter);padding:20px 16px 8px;display:flex;align-items:center;gap:12px}
 .sec-hdr::after{content:'';flex:1;height:.5px;background:var(--bdr-ter)}
 /* grid */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,480px),1fr));gap:0;border-top:.5px solid var(--bdr-ter);border-left:.5px solid var(--bdr-ter)}
-body.system-list .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(480px * var(--content-zoom))),1fr))!important}
 @media(max-width:640px){.grid{grid-template-columns:1fr}}
 @media(min-width:641px) and (max-width:1199px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1200px) and (max-width:1799px){.grid{grid-template-columns:repeat(2,1fr)}}
@@ -151,13 +142,6 @@ body.system-list .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,cal
 .card{background:var(--bg-pri);border-right:.5px solid var(--bdr-ter);border-bottom:.5px solid var(--bdr-ter);display:flex;flex-direction:column;transition:outline .1s}
 .card-flash{outline:2px solid var(--bdr-info);outline-offset:-2px}
 .card.hidden{display:none!important}
-body.system-detail .main > .fw,
-body.system-detail .sec-hdr,
-body.jump-detail .sec-hdr,
-body.jump-detail .grid,
-body.jump-detail .card{display:none!important}
-body.system-list .main > .fw{display:none!important}
-.jump-hidden{display:none!important}
 .chdr{padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border-bottom:.5px solid var(--bdr-ter)}
 .ctitle{font-size:14px;font-weight:500}
 .csub{font-size:11px;color:var(--txt-sec);margin-top:2px}
@@ -541,11 +525,6 @@ html:not(.js-enabled) .js-only{display:none!important}
 <div class="topbar" role="toolbar" aria-label="Main toolbar">
   <span class="brand">System Design Cheat Sheet · v15</span>
   <input id="srch" type="search" placeholder="Search systems…" aria-label="Search systems" oninput="search(this.value)">
-  <label class="font-ctl" title="Adjust content font size">
-    <span>Aa</span>
-    <input id="font-scale" type="range" min="90" max="150" step="5" value="150" aria-label="Content font size" oninput="setFontScale(this.value)">
-    <output id="font-scale-out">150%</output>
-  </label>
   <button class="tb-btn" id="interview-btn" onclick="toggleInterviewMode()" aria-pressed="false" title="Show 5 essential tabs only">Interview mode</button>
   <span class="kbd-hint" aria-hidden="true">/ search · j/k nav · 1–5 tabs · Esc</span>
 </div>
@@ -8345,76 +8324,20 @@ function buildEvolution(v){
 }
 function getState(){try{return JSON.parse(localStorage.getItem(LS)||'{}');}catch(e){return {};}}
 function setState(p){const s={...getState(),...p};localStorage.setItem(LS,JSON.stringify(s));}
-function setFontScale(v){
-  const pct=Math.max(90,Math.min(150,parseInt(v,10)||150));
-  document.documentElement.style.setProperty('--content-zoom',String(pct/100));
-  const slider=document.getElementById('font-scale');
-  const out=document.getElementById('font-scale-out');
-  if(slider&&slider.value!==String(pct)) slider.value=String(pct);
-  if(out) out.textContent=pct+'%';
-  setState({fontScale:pct});
-}
-let af='all',as='',selectedIdx=null,selectedJumpEl=null;
-function syncFilterButtons(){
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
-  const label=af==='all'?'All':af==='e'?'Easy':af==='m'?'Medium':'Hard';
-  document.querySelectorAll('.sb-btn').forEach(b=>{
-    if(b.textContent.trim().startsWith(label)) b.classList.add('on');
-  });
-}
-function clearSearchInputs(){
-  const sb=document.getElementById('sb-srch');
-  const tb=document.getElementById('srch');
-  if(sb) sb.value='';
-  if(tb) tb.value='';
-}
-function clearSystemDetail(){
-  selectedIdx=null;
-  selectedJumpEl=null;
-  document.body.classList.remove('system-detail','jump-detail','system-list');
-  document.querySelectorAll('.jump-hidden').forEach(el=>el.classList.remove('jump-hidden'));
-  document.querySelectorAll('.sb-sys').forEach(a=>a.classList.remove('active'));
-}
-function resolveJumpTarget(el){
-  if(!el) return null;
-  if(el.id==='ref-cap') return el.querySelector('.db-fw-hdr');
-  return el;
-}
-function showJumpDetail(el){
-  const target=resolveJumpTarget(el);
-  if(!target) return null;
-  clearSystemDetail();
-  selectedJumpEl=target;
-  document.body.classList.add('jump-detail');
-  apply();
-  return target;
-}
 function navTo(idx, e, tab){
   if(e) e.preventDefault();
   const card = document.getElementById('card-'+idx);
   if(!card) return;
-  const matchesFilter=(af==='all'||card.dataset.diff===af)&&(!as||card.dataset.title.includes(as));
-  if(!matchesFilter){
-    af='all';
-    as='';
-    syncFilterButtons();
-    clearSearchInputs();
+  if(card.classList.contains('hidden')){
+    filt('all');
+    apply();
   }
-  selectedIdx=idx;
-  selectedJumpEl=null;
-  document.body.classList.add('system-detail');
-  document.body.classList.remove('jump-detail','system-list');
-  apply();
   if(tab){
     const btn=card.querySelector('.tab[data-tab="'+tab+'"]');
     if(btn) sw(btn,'c'+idx,tab,idx);
   }
   setTimeout(()=>{
-    const main=document.querySelector('.main');
-    const topbar=document.querySelector('.topbar');
-    const topOffset=topbar?topbar.offsetHeight:0;
-    if(main) main.scrollTo({top:Math.max(card.offsetTop-topOffset,0),behavior:'smooth'});
-    else card.scrollIntoView({behavior:'smooth', block:'start'});
+    card.scrollIntoView({behavior:'smooth', block:'start'});
     card.classList.add('card-flash');
     setTimeout(()=>card.classList.remove('card-flash'), 800);
   }, 50);
@@ -8425,10 +8348,7 @@ function navTo(idx, e, tab){
   if(link && link.nodeType===1) link.classList.add('active');
 }
 function navCard(idx,dir){
-  const previousSelected=selectedIdx;
-  selectedIdx=null;
-  const visible=[...document.querySelectorAll('.card')].filter(c=>(af==='all'||c.dataset.diff===af)&&(!as||c.dataset.title.includes(as))).map(c=>parseInt(c.dataset.idx,10));
-  selectedIdx=previousSelected;
+  const visible=[...document.querySelectorAll('.card:not(.hidden)')].map(c=>parseInt(c.dataset.idx,10));
   const pos=visible.indexOf(idx);
   if(pos<0)return;
   const next=visible[pos+dir];
@@ -8523,9 +8443,8 @@ function toggleSidebar(){
 function scrollToEl(el,e){
   if(e)e.preventDefault();
   if(!el||!el.offsetTop===undefined)return;
-  const target=showJumpDetail(el)||el;
   const main=document.querySelector('.main');
-  if(main) main.scrollTo({top:target.offsetTop-8,behavior:'smooth'});
+  if(main) main.scrollTo({top:el.offsetTop-8,behavior:'smooth'});
   if(window.innerWidth<=768)toggleSidebar();
 }
 function toggleTheme(){
@@ -8562,19 +8481,18 @@ function sw(btn,id,tab,idx){
     history.replaceState(null,'','#card-'+idx+'-'+tab);
   }
 }
+let af='all',as='';
 function filt(d,btn){
-  clearSystemDetail();
-  document.body.classList.add('system-list');
   af=d;
   // sync sidebar sb-btn buttons
-  syncFilterButtons();
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
+  const label=d==='all'?'All':d==='e'?'Easy':d==='m'?'Medium':'Hard';
+  document.querySelectorAll('.sb-btn').forEach(b=>{
+    if(b.textContent.trim().startsWith(label)) b.classList.add('on');
+  });
   apply();
-  const main=document.querySelector('.main');
-  if(main) main.scrollTo({top:0,behavior:'smooth'});
 }
 function search(v){
-  clearSystemDetail();
-  document.body.classList.add('system-list');
   as=v.toLowerCase();
   // sync both search boxes
   const sb=document.getElementById('sb-srch');
@@ -8586,8 +8504,7 @@ function search(v){
 function apply(){
   let ae=false,am=false,ah=false;
   document.querySelectorAll('.card').forEach(c=>{
-    const matchesFilter=(af==='all'||c.dataset.diff===af)&&(!as||c.dataset.title.includes(as));
-    const show=!selectedJumpEl&&matchesFilter&&(selectedIdx===null||parseInt(c.dataset.idx,10)===selectedIdx);
+    const show=(af==='all'||c.dataset.diff===af)&&(!as||c.dataset.title.includes(as));
     c.classList.toggle('hidden',!show);
     if(show){if(c.dataset.diff==='e')ae=true;else if(c.dataset.diff==='m')am=true;else ah=true;}
   });
@@ -8598,31 +8515,8 @@ function apply(){
     g.style.display=any?'':'none';
     s.style.display=any?'':'none';
   });
-  applyJumpDetail();
 }
 render();
-
-function applyJumpDetail(){
-  document.querySelectorAll('.jump-hidden').forEach(el=>el.classList.remove('jump-hidden'));
-  if(!selectedJumpEl) return;
-  const target=selectedJumpEl;
-  const targetSection=target.closest('.fw')||target;
-  document.querySelectorAll('.main > .fw').forEach(section=>{
-    section.classList.toggle('jump-hidden',section!==targetSection);
-  });
-  if(target.classList.contains('db-fw-hdr')){
-    targetSection.querySelectorAll('.db-fw-hdr').forEach(hdr=>{
-      const body=hdr.nextElementSibling;
-      const keep=hdr===target;
-      hdr.classList.toggle('jump-hidden',!keep);
-      if(body&&body.classList.contains('db-fw-body')) body.classList.toggle('jump-hidden',!keep);
-    });
-    const body=target.nextElementSibling;
-    const arrow=target.querySelector('.db-fw-arrow');
-    body?.classList.add('open');
-    arrow?.classList.add('open');
-  }
-}
 
 function toggleDb(hdr){
   const body=hdr.nextElementSibling;
@@ -8650,7 +8544,6 @@ function initApp(){
     const btn=document.getElementById('theme-btn');
     if(btn) btn.textContent='☀️ Light mode';
   }
-  if(s.fontScale) setFontScale(s.fontScale);
   if(s.interview) toggleInterviewMode();
   if(s.studied){
     Object.entries(s.studied).forEach(([idx,on])=>{

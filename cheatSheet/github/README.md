@@ -16,6 +16,7 @@ This folder contains static versions you can read directly on GitHub:
 
 - [system_design_cheatsheet_v14.html](../system_design_cheatsheet_v14.html) — v15, search, interview mode, keyboard shortcuts
 - [SystemDesign_Complete_v10.html](../SystemDesign_Complete_v10.html) — ByteByteGo reference + cloud CLI tables
+- [EDA_Interview_Question_Bank_Complete.html](../EDA_Interview_Question_Bank_Complete.html) — EDA interview bank (26 questions, follow-ups, diagrams)
 
 ## Regenerate
 

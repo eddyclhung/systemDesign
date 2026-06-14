@@ -455,8 +455,8 @@ def patch_v10_cards(html_text: str) -> str:
     for diff, gid in [("e", "cards-ge"), ("m", "cards-gm"), ("h", "cards-gh")]:
         cards = "\n".join(by_diff[diff])
         html_text = re.sub(
-            rf'<div class="grid" id="{gid}"></div>',
-            f'<div class="grid" id="{gid}">\n{cards}\n</div>',
+            rf'<div class="cards-grid" id="{gid}"></div>',
+            f'<div class="cards-grid" id="{gid}">\n{cards}\n</div>',
             html_text,
             count=1,
         )

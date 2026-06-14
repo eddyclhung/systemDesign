@@ -1,5 +1,12 @@
 # Changelog
 
+## EDA question bank (2026-06-13)
+
+- `cheatSheet/EDA_Interview_Question_Bank_Complete.html` — 26 EDA interview questions, 78 follow-up answers, 12 SVG diagrams
+- 10 categories: delivery semantics, ordering, failure handling, Kafka internals, patterns, backpressure, schema evolution, observability, async vs sync, real-world failures
+- Search, category filters, reviewed progress, hard-only / hide-reviewed toggles, keyboard shortcuts
+- Linked from `cheatSheet/index.html`, README, and viewing guides
+
 ## v15 (2026-06-11)
 
 ### GitHub view

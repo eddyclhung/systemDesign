@@ -3281,11 +3281,2623 @@ for speed: the feed can be rebuilt from Cassandra if Redis is wiped."</div>
   <input type="text" id="cards-search" placeholder="Search systems…" oninput="searchCards(this.value)" style="margin-left:8px">
 </div>
 <div id="csec-e" class="cards-sec">Easy</div>
-<div class="cards-grid" id="cards-ge"></div>
+<div class="cards-grid" id="cards-ge">
+<div class="scard" id="card-scale" data-diff="e" data-title="scale from zero to millions progressive architecture · 8 scaling laws"><div class="scard-hdr"><div class="scard-title">Scale From Zero to Millions</div><div class="scard-sub">Vol 1 · Ch.1 · Progressive architecture · 8 scaling laws</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+The challenge is not building a system that works for 10 users — that's trivial. The challenge is building one that evolves gracefully from 10 users to 10 million without a full rewrite at each step.
+
+Every architectural decision has a cost. The goal is to defer complexity until the scale actually demands it, and to know precisely which bottleneck to attack at each threshold.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Single server first** — Start with one box. Only split when you hit a real bottleneck — premature separation adds operational cost with no benefit.
+- **Separate web and data tiers** — The moment you need to scale them independently, put the DB on its own host. This is almost always step two.
+- **Load balancer + horizontal web** — Add a second web server and a load balancer. Now the web tier has no SPOF and can autoscale.
+- **DB replication** — Master for writes, slaves for reads. Most apps are 10:1 read-heavy — replicas absorb that ratio.
+- **Cache tier** — Redis in front of DB. Cache-aside pattern. Target >90% hit rate. Never use as primary store.
+- **CDN for statics** — JS, CSS, images off your origin. 99% of static traffic served from edge. Massive latency reduction globally.
+- **Stateless web** — Session state → Redis. Any server handles any request. Autoscaling becomes trivial.
+- **Sharding** — When write QPS exceeds single master capacity, shard by a well-distributed key (e.g. hash(user_id)).
+
+> The 8 laws: stateless web · redundancy everywhere · cache aggressively · multi-DC · CDN for statics · shard the DB · split tiers into services · monitor and automate.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The hardest part is not any single component — it's knowing which component is the actual bottleneck right now and resisting the temptation to solve tomorrow's problem today.
+
+At small scale, complexity is the enemy. A junior engineer will add Kafka to a system that gets 50 QPS. A senior engineer will run a single Postgres instance until it actually hurts.
+
+The scaling pain inflection points: (1) Single box → needs HA: add a second web server and LB. (2) Read-heavy DB: add replicas and cache. (3) Write-heavy DB: shard. (4) Global latency: multi-DC + CDN. (5) Monolith coupling: microservices.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Top-down framing.
+2. "Before I design, a few quick questions: what's the target DAU? And is there a specific component you want me to focus on — web tier, data tier, caching strategy?"
+3. "Great. I'll walk through the architecture in stages, adding components as scale demands them rather than front-loading complexity."
+4. "Stage 1: single server. Works fine under 10K users. The next bottleneck is always the DB — so stage 2 is separating web and data tiers and adding a read replica."
+5. "Stage 3: the web tier becomes the bottleneck. Add a load balancer and a second web server. Move session state to Redis so any server handles any request."
+6. "Stage 4: cache tier. Redis in front of the DB. Cache-aside pattern. I'd set TTL based on how stale the data can tolerate being — usually 5 minutes for profile data, shorter for inventory."
+7. "Stage 5: CDN for all static assets. This alone removes 99% of bandwidth from our origin servers."
+8. "If we needed to go further: shard the DB when write QPS exceeds single master capacity, and add a second data center with GeoDNS routing for global HA."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌─────────────────────┐
+                        │   GeoDNS / CDN       │
+                        │  static assets edge  │
+                        └──────────┬──────────┘
+                                   │
+              ┌────────────────────▼────────────────────┐
+              │             Load Balancer                │
+              │          (health checks, TLS)            │
+              └──────┬───────────────────────┬──────────┘
+                     │                       │
+           ┌─────────▼──────┐     ┌──────────▼─────────┐
+           │  Web Server 1  │     │   Web Server 2      │
+           │  (stateless)   │     │   (stateless)       │
+           └────────┬───────┘     └────────┬────────────┘
+                    └──────────┬───────────┘
+                               │
+                    ┌──────────▼──────────┐
+                    │     Redis Cache      │
+                    │  (session + data)    │
+                    └──────────┬──────────┘
+                               │ cache miss
+                    ┌──────────▼──────────┐
+                    │    Master DB         │◄── all writes
+                    │   (PostgreSQL)       │
+                    └──────────┬──────────┘
+                               │ async replication
+              ┌────────────────┼─────────────────┐
+              │                │                 │
+   ┌──────────▼──────┐ ┌───────▼───────┐ ┌──────▼──────────┐
+   │  Read Replica 1  │ │ Read Replica 2│ │  Read Replica 3  │
+   └──────────────────┘ └───────────────┘ └──────────────────┘
+
+SCALING STAGES:
+  Stage 1: Single box
+  Stage 2: Separate web + DB tier
+  Stage 3: LB + stateless web + read replicas
+  Stage 4: Redis cache (absorb 80%+ reads)
+  Stage 5: CDN for statics, GeoDNS for global HA
+  Stage 6: DB sharding when write QPS > 5K/sec
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-urlshortener" data-diff="e" data-title="url shortener (tinyurl) base62 encoding · cache-aside · 302 redirect"><div class="scard-hdr"><div class="scard-title">URL Shortener (TinyURL)</div><div class="scard-sub">Vol 1 · Ch.8 · Base62 encoding · Cache-aside · 302 redirect</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Take a long URL, generate a short code, and redirect users when they visit the short link. Sounds simple, but the challenge is handling a read-to-write ratio of 100:1, generating unique codes at scale, and handling analytics without slowing down redirects.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Base62 encoding** — 62 chars (a-z, A-Z, 0-9). 62^7 = 3.5 trillion codes. 7 characters is sufficient for any realistic URL volume.
+- **Counter vs hash** — Counter + Base62 guarantees uniqueness, no collision handling needed. Hash (MD5/SHA-1 truncated) is more distributed but requires collision retry logic.
+- **302 vs 301** — 302 (temporary redirect): every click hits your server. Good for analytics. 301 (permanent): browser caches forever. Reduces load but you lose click tracking.
+- **Cache-aside** — On redirect: check Redis first. Hit → return immediately. Miss → query PG → populate Redis → return. 99% of reads from cache at steady state.
+- **Read-heavy optimization** — 100:1 read-to-write. Cache is the primary optimization. Separate read and write services to scale independently.
+- **Expiration** — TTL in DB and cache must match. Short URLs can have optional expiration. Return 410 Gone for expired links.
+
+> Counter + Base62 for uniqueness. Redis cache-aside for read scaling. 302 for analytics. That's the core design.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The redirect path is the hot path. Every millisecond counts. The optimization order: (1) in-process LRU for top 1000 links on each server — zero network hops. (2) Redis for the hot 20% — 1ms. (3) PG read replica for cache misses — 5-10ms. The write path (link creation) is cold by comparison and can tolerate DB round-trips.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Clean two-flow framing.
+2. "I'll design two flows: URL creation and redirect. They have very different scale requirements — 100:1 read-to-write ratio means redirects are the optimization target."
+3. "URL creation: POST /urls. Generate a short code using counter + Base62 (7 chars = 3.5T codes, no collision risk). Write to PG + populate Redis cache. Return short URL."
+4. "Redirect: GET /{code}. Check Redis first. Hit: 302 to long URL immediately. Miss: query PG, populate Redis, then 302. I'd use 302 not 301 — preserves click analytics and lets us update destinations."
+5. "Scale: 35K redirect QPS. Stateless redirect servers behind LB. Redis cache covers 80%+ of traffic. PG read replica for misses. Local in-process cache for viral links."
+6. "Analytics: redirect service publishes to Kafka asynchronously — zero impact on redirect latency. Separate consumer aggregates into ClickHouse."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌──────────────────────────────────────────────────────┐
+  │                   WRITE PATH                          │
+  │                POST /shorten                          │
+  └───────────────────────┬──────────────────────────────┘
+                          │
+               ┌──────────▼──────────┐
+               │    Write Service     │
+               │  1. counter INCR    │◄── Redis atomic counter
+               │  2. Base62 encode   │    (pre-allocated range)
+               │  3. write PG + Redis│
+               └──────────┬──────────┘
+               ┌───────────┴─────────┐
+               ▼                     ▼
+      ┌─────────────┐       ┌───────────────┐
+      │ PostgreSQL  │       │  Redis Cache  │
+      │ short→long  │       │ short→long    │
+      │ expiry, meta│       │ TTL = expiry  │
+      └─────────────┘       └───────────────┘
+
+  ┌──────────────────────────────────────────────────────┐
+  │                   READ PATH                           │
+  │               GET /{shortCode}                        │
+  └───────────────────────┬──────────────────────────────┘
+                          │
+               ┌──────────▼──────────┐
+               │   Redirect Service   │
+               │  (stateless, ×N)    │
+               └──────────┬──────────┘
+                          │
+             ┌────────────┼──────────────┐
+             ▼                           ▼
+    ┌─────────────────┐       ┌─────────────────────┐
+    │  Local LRU      │       │   Redis Cache        │
+    │  (top 1000)     │       │   (hot 20% of URLs)  │
+    │  0 network hops │       │   ~1ms               │
+    └────────┬────────┘       └──────────┬───────────┘
+             │ HIT                       │ MISS
+             ▼                           ▼
+          302 →                ┌──────────────────┐
+        long URL               │  PostgreSQL       │
+                               │  read replica     │
+                               └────────┬──────────┘
+                                        │
+                                     302 →
+                                   long URL
+
+  Kafka ◄── click event (async, no redirect latency impact)
+  ClickHouse ◄── Kafka consumer (analytics aggregation)
+```
+
+</details>
+
+
+</div></div>
+</div>
 <div id="csec-m" class="cards-sec">Medium</div>
-<div class="cards-grid" id="cards-gm"></div>
+<div class="cards-grid" id="cards-gm">
+<div class="scard" id="card-ratelimiter" data-diff="m" data-title="rate limiter token bucket · sliding window · redis counter"><div class="scard-hdr"><div class="scard-title">Rate Limiter</div><div class="scard-sub">Vol 1 · Ch.4 · Token bucket · Sliding window · Redis counter</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Rate limiting prevents a single client from overwhelming your system. Without it, a single buggy client, a DDoS, or a viral API integration can bring down your entire backend.
+
+The challenge: enforce limits correctly under distributed traffic, where requests for the same user hit different servers, without adding significant latency to every API call.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Token bucket (default)** — Bucket holds N tokens. Tokens refill at rate R/s. Each request consumes 1. Burst-tolerant. Used by Amazon and Stripe.
+- **Leaky bucket** — FIFO queue. Fixed outflow rate. Smooths bursts into steady stream. Used by Shopify.
+- **Fixed window counter** — Count requests per fixed time window. Simple. Vulnerability: burst at window boundary doubles effective rate.
+- **Sliding window log** — Store timestamp of each request. Accurate. High memory — stores every timestamp.
+- **Sliding window counter** — Hybrid: weighted average of current + previous window. Best accuracy-to-memory tradeoff.
+- **Redis as counter store** — INCR + EXPIRE on key = user_id:minute. Atomic. Shared across all API servers. ~1ms overhead.
+- **Rate limit headers** — Always return X-RateLimit-Limit, X-RateLimit-Remaining, Retry-After in 429 responses.
+- **Multi-tier limits** — Per-IP, per-user, per-endpoint. Global limit as safety net. Different buckets for different API tiers.
+
+> Token bucket for burst-tolerance, sliding window counter for accuracy. Redis for shared state. Always return Retry-After so clients back off intelligently.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The scaling pain in rate limiting is Redis becoming the bottleneck — every API request adds 2 Redis ops. At 500K QPS that's 1M Redis ops/sec.
+
+Redis Cluster shards keys by hash slot. The rate limit key is user_id — naturally distributed. At 500K API QPS, a 6-node Redis cluster (each handling ~165K ops/sec, well within Redis's 500K ops/sec per node capacity) is sufficient with headroom.
+
+The second pain is hot keys — a single high-traffic API key (enterprise customer making 50K req/min) creates a hot Redis key. Mitigation: local in-process token bucket for known high-volume keys, syncing with Redis every 100ms instead of every request.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-layer framing.
+2. "Rate limiter has two concerns: the algorithm for counting, and the storage for sharing counts across servers. Let me address both."
+3. "Algorithm: I'd use token bucket by default — burst-tolerant, memory-efficient, easy to explain to clients. Each user has a bucket of N tokens that refills at R/s. Request consumes one token. If empty: 429."
+4. "Storage: Redis with INCR + EXPIRE. Key is user_id:window. This is atomic — no race conditions. Adds ~1ms per request, negligible against typical API latency."
+5. "Placement: API gateway checks global per-user limits. Service middleware handles per-endpoint limits. Return X-RateLimit-Remaining and Retry-After so clients back off intelligently."
+6. "For multi-DC: each DC enforces locally. Slight over-limit at boundaries is acceptable. For strict global limits, I'd sync counters with eventual consistency and accept rare over-limit edge cases."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌─────────────────────────────────────────────────────┐
+  │                    Client Request                    │
+  └──────────────────────────┬──────────────────────────┘
+                             │
+  ┌──────────────────────────▼──────────────────────────┐
+  │                    API Gateway                       │
+  │           (rate check middleware here)               │
+  └───────────┬──────────────────────────┬──────────────┘
+              │                          │
+  ┌───────────▼──────────┐   ┌───────────▼──────────────┐
+  │   Rate Limit Check    │   │   If ALLOWED: forward    │
+  │                       │   │   to Backend Service     │
+  │  INCR key             │   └──────────────────────────┘
+  │  key = user:window    │
+  │  GET count            │   ┌──────────────────────────┐
+  │  count > limit?       │   │   If BLOCKED: return     │
+  └───────────┬───────────┘   │   429 Too Many Requests  │
+              │               │   + Retry-After header   │
+  ┌───────────▼───────────┐   └──────────────────────────┘
+  │    Redis Cluster       │
+  │                        │
+  │  user_id:minute → N    │  ← INCR (atomic)
+  │  TTL = 60s             │  ← EXPIRE auto-resets
+  │                        │
+  │  Token bucket state:   │
+  │  {tokens, last_refill} │
+  └────────────────────────┘
+
+  MULTI-TIER LIMITS:
+  ┌──────────────────────────────────────────────────────┐
+  │  IP limit       │ user limit   │  API key tier limit  │
+  │  (DDoS guard)   │ (per-account)│  (free/pro/enterprise│
+  └──────────────────────────────────────────────────────┘
+
+  ALGORITHM (Token Bucket):
+  bucket = {tokens: N, last_refill: ts}
+  on request:
+    refill = min(N, tokens + rate*(now-last_refill))
+    if refill >= 1: allow, tokens = refill - 1
+    else: reject 429
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-consistent-hashing" data-diff="m" data-title="consistent hashing hash ring · virtual nodes · minimal redistribution"><div class="scard-hdr"><div class="scard-title">Consistent Hashing</div><div class="scard-sub">Vol 1 · Ch.5 · Hash ring · Virtual nodes · Minimal redistribution</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+When you have N cache servers and use hash(key) % N to route requests, adding or removing one server remaps almost every key — causing a massive cache miss storm.
+
+Consistent hashing ensures only k/N keys need to be remapped when a node is added or removed. It's the foundational primitive for any distributed data system.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Hash ring** — Servers and keys are both mapped onto a circular ring (0 to 2^32 or 2^160). Key is stored on the first server clockwise from its hash position.
+- **Adding a server** — Only keys between the new server and its predecessor need redistribution. ~k/N keys total.
+- **Removing a server** — Only keys that mapped to the removed server migrate — to its clockwise successor. ~k/N keys.
+- **Virtual nodes** — Each physical server gets V positions on the ring. More positions = more uniform key distribution. V=150 is common in Cassandra.
+- **Replication** — Walk clockwise from key position; store on first N unique physical servers. For N=3: replicas on 3 distinct nodes.
+- **Hotspot caveat** — Consistent hashing distributes keys uniformly — but NOT traffic. Celebrity keys get 100× more reads regardless of which node they land on.
+- **Real-world use** — Cassandra, DynamoDB, Chord, Akamai CDN, Discord all use consistent hashing for data distribution.
+
+> Hash ring + virtual nodes solves uniform distribution. k/N redistribution on topology change is the key property. Traffic hotspots require separate mitigation (read replicas, key salting).
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The scaling pain is the rebalance operation. Adding a node to a 1TB cluster means migrating ~100GB. During this migration, some keys are in-flight between nodes — you need to handle reads that return stale or missing data.
+
+The solution is a "pending" state: new node is added to the ring but not yet serving traffic. Keys are migrated in the background. Once migration completes, new node flips to active. Reads during migration: check both old and new owner, return whichever responds faster (scatter-gather).
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Problem-first framing.
+2. "Consistent hashing solves a specific problem: when you add or remove a server in a distributed cache, modulo hashing remaps almost every key — causing a mass cache miss storm. Consistent hashing remaps only k/N keys."
+3. "The mechanism: map both servers and keys onto a circular ring using the same hash function. A key is stored on the first server clockwise from its hash position."
+4. "Adding a server: it claims the keys between itself and its predecessor. Removing a server: its keys migrate to its successor. Either way, only ~k/N keys move."
+5. "Virtual nodes: each physical server gets V positions on the ring. This gives near-uniform distribution even with heterogeneous server sizes."
+6. "For replication: walk clockwise from the key, replicate to the first N unique physical servers."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+HASH RING  (0 ──────────────────────────── 2^160)
+
+          0
+          │   S0-vn1    S0-vn2
+     S2-vn3  *────────────*
+       *        ↑             *
+      *     K5→ hops to S0-vn2 *
+     *                          *
+  S2-vn2                    S1-vn1
+     *      K3 *     * K1      *
+     *          ↓              *
+      *     S2 is K3's         *
+       *    server          S1-vn2
+        *────────────────────*
+          S2-vn1    S0-vn3 ──► K2 served by S0
+
+  ┌────────────────────────────────────────────────────┐
+  │  VIRTUAL NODES (V=3 shown, production V=150)        │
+  │                                                     │
+  │  Server 0:  positions [14, 67, 121]                 │
+  │  Server 1:  positions [33, 89, 145]                 │
+  │  Server 2:  positions [51, 102, 167]                │
+  │                                                     │
+  │  Key K → hash(K) → walk clockwise → first server   │
+  └────────────────────────────────────────────────────┘
+
+  REPLICATION (N=3):
+  ┌─────────────────────────────────────────────────────┐
+  │  Key → hash → primary node                          │
+  │            → 2nd unique physical node (clockwise)   │
+  │            → 3rd unique physical node (clockwise)   │
+  │                                                     │
+  │  "Unique physical" = skip virtual nodes of same box │
+  └─────────────────────────────────────────────────────┘
+
+  NODE ADD/REMOVE:
+  Add Server 3:  only keys between S3 and its predecessor migrate
+  Remove Server: its keys migrate to clockwise successor
+  Either case:   ~k/N keys move  (vs (N-1)/N with modulo)
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-idgen" data-diff="m" data-title="unique id generator snowflake · 64-bit · time-ordered · no coordination"><div class="scard-hdr"><div class="scard-title">Unique ID Generator</div><div class="scard-sub">Vol 1 · Ch.7 · Snowflake · 64-bit · Time-ordered · No coordination</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Generate globally unique, time-sortable IDs across thousands of machines without a central coordinator. The ID must be 64-bit (efficient for DB indexing), sortable by generation time (useful for pagination), and generated without network round-trips (low latency).
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Snowflake layout (64 bits)** — 1 sign bit (0) + 41 timestamp (ms since epoch, ~69 years) + 5 datacenter ID + 5 machine ID + 12 sequence (4096 IDs/ms/machine)
+- **No coordination** — Machine ID is pre-assigned (from ZooKeeper or config). Sequence resets each millisecond. No network call to generate an ID — pure local computation.
+- **Throughput** — 4096 IDs/ms/machine. 1024 machines × 4096 = 4.2M IDs/ms globally. More than any realistic write rate.
+- **Time-ordered** — IDs increase monotonically within a millisecond window. Sorted by generation time. Efficient B-tree index inserts (no random page splits).
+- **Clock skew risk** — If machine clock goes backward, generated IDs can collide with previous ones. Must detect and handle backward clock jumps.
+- **UUID tradeoffs** — UUID v4: 128-bit, random, no coordination, no network call. But: not sortable, 2× the storage, poor B-tree performance (random inserts).
+- **Custom epoch** — Set epoch to recent date (e.g. 2024-01-01) to maximize timestamp range. 41 bits from 2024 = usable until ~2093.
+
+> Snowflake is the production default: 64-bit, no coordination, time-ordered, 4096 IDs/ms/machine. Main risk: clock skew. Main mitigation: refuse to generate IDs if clock goes backward, wait for clock to catch up.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+Snowflake has essentially no scaling problems — it's entirely local computation. The only external dependency is ZooKeeper for machine ID assignment, which happens once at startup.
+
+The edge case is an extremely write-heavy service generating >4096 IDs/ms/machine. Solution: provision more machines (each gets its own machine ID space). At 4096 IDs/ms/machine × 1024 machines = 4.2B IDs/ms globally — practically unlimited.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Requirements-first script.
+2. "Clarifying questions: do IDs need to be globally unique across services, or per-service unique? And do they need to be sortable by creation time?"
+3. "Global uniqueness, time-sortable — perfect for Snowflake. Here's the structure: 64 bits total. 1 sign bit always 0. 41 bits for timestamp in milliseconds since a custom epoch — gives us 69 years. 10 bits for machine identity (5 datacenter + 5 machine). 12 bits for sequence within a millisecond — 4096 IDs/ms/machine."
+4. "No coordination needed on the hot path. Machine ID is pre-assigned from ZooKeeper at startup. After that, ID generation is pure local computation — just timestamp + counter."
+5. "Main risk: clock skew. If NTP adjusts the clock backward, we could generate duplicate timestamps. Fix: track last generated timestamp, refuse to generate if current time goes backward, wait until clock catches up."
+6. "Throughput: 4096 IDs/ms × 1024 machines = 4.2 billion IDs per millisecond globally. More than sufficient for any realistic write load."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌─────────────────────────────────────────────────────┐
+  │             SNOWFLAKE 64-BIT ID LAYOUT               │
+  │                                                      │
+  │  bit  63   62────────────22  21──17  16──12  11────0 │
+  │       [0] [  41-bit epoch ms ] [5-DC][5-mach][12-seq]│
+  │        ▲          ▲               ▲      ▲       ▲   │
+  │      sign    ms since epoch    DC ID  Mach    0–4095 │
+  │       =0    custom epoch 2024   0–31   ID    per ms  │
+  └─────────────────────────────────────────────────────┘
+
+  STARTUP (one-time):
+  ┌────────────┐    register    ┌──────────────────────┐
+  │  Service   │──────────────►│   ZooKeeper           │
+  │  Instance  │               │  sequential ephemeral │
+  │            │◄──────────────│  node → machine ID    │
+  └────────────┘  machine_id   └──────────────────────┘
+
+  ID GENERATION (hot path — zero network calls):
+  ┌─────────────────────────────────────────────────────┐
+  │  now_ms  = current_time_ms()                        │
+  │                                                     │
+  │  if now_ms < last_ms:                               │
+  │      wait until clock catches up  (clock skew)     │
+  │                                                     │
+  │  if now_ms == last_ms:                              │
+  │      seq = (seq + 1) & 0xFFF   (12-bit mask)       │
+  │      if seq == 0: spin to next ms                   │
+  │  else:                                              │
+  │      seq = 0                                        │
+  │                                                     │
+  │  last_ms = now_ms                                   │
+  │                                                     │
+  │  id = (now_ms - epoch) << 22                        │
+  │      | (dc_id << 17)                               │
+  │      | (machine_id << 12)                          │
+  │      | seq                                          │
+  └─────────────────────────────────────────────────────┘
+
+  THROUGHPUT:  4096 IDs/ms × 1024 machines = 4.2B IDs/ms
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-webcrawler" data-diff="m" data-title="web crawler bfs url frontier · politeness · deduplication · bloom filter"><div class="scard-hdr"><div class="scard-title">Web Crawler</div><div class="scard-sub">Vol 1 · Ch.9 · BFS URL frontier · Politeness · Deduplication · Bloom filter</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Build a distributed web crawler that can index billions of pages while respecting robots.txt, not overwhelming target servers, avoiding crawl loops, and handling duplicate content. The graph traversal, politeness, and deduplication problems all interact.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **BFS, not DFS** — DFS goes arbitrarily deep into one domain. BFS ensures breadth — important for broad web coverage. URL frontier is a priority queue implementing BFS.
+- **URL frontier: two queues** — Priority queue (what to crawl next, scored by PageRank/freshness). Politeness queue (enforces ≥1s delay per domain). URLs must pass both.
+- **Bloom filter for URL dedup** — Before adding a URL to the frontier, check Bloom filter. If definitely absent: add. If possibly present: discard. O(1) check, tiny memory. ~1% false positive rate is acceptable.
+- **Content dedup** — Hash the downloaded page content. If hash already seen: skip indexing. Handles mirrors and syndicated content.
+- **robots.txt** — Fetch and cache robots.txt per domain before crawling. Respect Disallow rules. Re-fetch robots.txt periodically (TTL ~24h).
+- **DNS caching** — DNS resolution per URL without caching is a major bottleneck. Cache DNS results per domain (TTL ~1 min). Reduces DNS lookup from 100ms to 0.
+- **Consistent hashing for workers** — Distribute URLs to downloader workers by consistent hashing on domain — ensures same domain always hits same worker, making per-domain rate limiting trivial.
+
+> The two hard problems are politeness (don't hammer a single host) and dedup (don't re-crawl the same content twice). Bloom filter solves URL dedup. Politeness queue with domain rate limiting solves the server overload problem.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The two scaling bottlenecks are: (1) the URL frontier growing faster than it can be processed (queue depth explodes), and (2) DNS resolution becoming a bottleneck. URL frontier: use Kafka as the durable URL queue — handles millions of URLs/sec, partitioned by domain hash. DNS: dedicated DNS cache cluster shared across all workers, with pre-seeded common domains. Monitor: queue depth per domain (detect stalls), DNS cache hit rate (target >99%), per-domain crawl rate (ensure politeness compliance).
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Politeness-first framing.
+2. "A web crawler has two hard problems: not being banned by target servers, and not re-crawling the same content. I'll design around those constraints."
+3. "URL frontier: two-level queue. Priority queue determines what gets crawled first (PageRank-weighted). Politeness queue enforces ≥1s delay per domain. URLs pass through both before being dispatched to downloader workers."
+4. "Workers distributed by consistent hashing on domain — same domain always goes to same worker, making per-domain rate limiting trivial."
+5. "Deduplication: Bloom filter for URL dedup before adding to frontier. Content hash for exact duplicate detection after download. SimHash for near-duplicate detection."
+6. "Robots.txt fetched and cached per domain. Respected before any crawl."
+7. "DNS caching: per-worker in-memory DNS cache eliminates repeated DNS lookups for the same domain."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌─────────────────────────────────────────────────────┐
+  │                  Seed URL Queue                      │
+  └──────────────────────────┬──────────────────────────┘
+                             │
+  ┌──────────────────────────▼──────────────────────────┐
+  │                  URL Frontier                        │
+  │                                                     │
+  │  ┌─────────────────────────────────────────────┐    │
+  │  │  Priority Queue   (PageRank/freshness score) │    │
+  │  └──────────────────────┬──────────────────────┘    │
+  │                         ▼                           │
+  │  ┌─────────────────────────────────────────────┐    │
+  │  │  Politeness Queues  (one queue per domain)   │    │
+  │  │  domain A: [url1, url2...]  delay ≥1s        │    │
+  │  │  domain B: [url3, url4...]  delay ≥1s        │    │
+  │  └──────────────────────┬──────────────────────┘    │
+  └──────────────────────────┼─────────────────────────┘
+                             │  (consistent hash by domain)
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+  │ Downloader  │   │ Downloader  │   │ Downloader  │
+  │  Worker 1   │   │  Worker 2   │   │  Worker N   │
+  │             │   │             │   │             │
+  │ DNS cache   │   │ DNS cache   │   │ DNS cache   │
+  │ robots.txt  │   │ robots.txt  │   │ robots.txt  │
+  └──────┬──────┘   └──────┬──────┘   └──────┬──────┘
+         └─────────────────┼──────────────────┘
+                           │
+              ┌────────────▼────────────┐
+              │    Content Processor    │
+              │                        │
+              │  ┌─────────────────┐   │
+              │  │  HTML Parser    │   │
+              │  │  URL Extractor  │   │
+              │  └────────┬────────┘   │
+              │           │            │
+              │  ┌────────▼────────┐   │
+              │  │  Content Hash   │   │  ← exact dedup
+              │  │  (SHA-256)      │   │
+              │  └────────┬────────┘   │
+              └───────────┼────────────┘
+                          │
+              ┌───────────▼────────────┐
+              │    URL Dedup Check     │
+              │                        │
+              │  Bloom Filter          │  ← O(1), ~1% FPR
+              │  (1B URLs → 1.25 GB)   │
+              └───────────┬────────────┘
+                          │
+              ┌───────────▼────────────┐   NOT SEEN
+              │  URL Frontier          │◄──────────── new URLs
+              │  (loop back)           │
+              └────────────────────────┘
+
+  Storage:
+  ┌────────────────────────────────────────────────────┐
+  │  S3 / HDFS   ← raw HTML + parsed content           │
+  │  Cassandra   ← crawl metadata (URL, status, ts)    │
+  │  Elasticsearch ← inverted index for search          │
+  └────────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-notification" data-diff="m" data-title="notification system push · sms · email · fan-out · deduplication"><div class="scard-hdr"><div class="scard-title">Notification System</div><div class="scard-sub">Vol 1 · Ch.10 · Push · SMS · Email · Fan-out · Deduplication</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Build a system that sends millions of notifications per day across multiple channels (iOS push, Android push, SMS, email) with delivery guarantees, deduplication on retries, and user preference management.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Multi-channel routing** — iOS → APNs. Android → FCM. SMS → Twilio/Nexmo. Email → SendGrid/Mailchimp. Each channel has its own worker pool and rate limits.
+- **Message queue per channel** — Decouple notification service from channel workers. One Kafka topic per channel type. Workers can scale independently.
+- **Deduplication** — At-least-once delivery means the same notification might be dispatched twice on retry. Redis set with event_id + TTL prevents duplicate sends.
+- **Device token management** — APNs/FCM tokens expire and change. On delivery failure, detect invalid token, remove from DB, don't retry. Token refresh on app open.
+- **User preferences** — Check opt-out before enqueuing. Per-channel, per-category opt-outs. Cache preferences in Redis.
+- **Retry with backoff** — Third-party provider failures are transient. Retry with exponential backoff + jitter. Dead-letter queue for permanently failed deliveries.
+- **Rate limiting** — Don't spam users. Max N notifications/user/hour. Configurable per notification category.
+
+> The three reliability guarantees: deduplication (event_id in Redis), retry (exponential backoff + DLQ), and preference checking (before enqueue, not after). Always check preferences before publishing to queue.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The fan-out problem is the main scaling challenge: one viral event → 10M notifications. The bottleneck is not Kafka (handles millions/sec) — it's the third-party providers (APNs, FCM). APNs rate limits per certificate. FCM has token-level rate limits.
+
+Mitigation: stagger the fan-out. Don't enqueue all 10M at once — batch enqueue over 60 seconds. Monitor third-party error rates and back off when limits are hit. For SMS and email, the cost per message also makes staggering economically necessary.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Three-channel framing.
+2. "Notification system has three hard problems: multi-channel routing, delivery guarantees, and scale spikes from viral events. I'll address each."
+3. "Architecture: API service → Kafka (one topic per channel type) → channel workers → APNs/FCM/Twilio/SendGrid."
+4. "Delivery guarantee: at-least-once delivery from Kafka. Deduplication in workers: Redis SETNX on event_id with 24h TTL — prevent duplicate sends on retry."
+5. "User preferences checked before enqueuing — never waste queue capacity on opted-out users. Preferences cached in Redis."
+6. "Scale spikes: Kafka absorbs bursts. Worker autoscaling based on consumer lag. Third-party rate limit monitoring with exponential backoff."
+7. "Device token invalidation: APNs/FCM errors on invalid tokens → immediate token removal from DB."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌───────────────────────────────────────────────────────┐
+  │                  API / Trigger Layer                   │
+  │  Marketing   Transactional   System   Scheduled       │
+  │  campaign    (order conf.)   alert    (reminders)     │
+  └──────────────────────────┬────────────────────────────┘
+                             │
+              ┌──────────────▼──────────────┐
+              │    Notification Service      │
+              │                             │
+              │  1. Check user prefs (Redis) │
+              │  2. Deduplicate (event_id)   │
+              │  3. Per-user rate limit      │
+              │  4. Route by channel type   │
+              └──────┬──────────────────────┘
+                     │
+       ┌─────────────┼───────────────┬──────────────┐
+       │             │               │              │
+  ┌────▼────┐ ┌──────▼─────┐ ┌──────▼───┐ ┌────────▼────┐
+  │  Kafka  │ │   Kafka    │ │  Kafka   │ │   Kafka     │
+  │ ios-push│ │android-push│ │   sms    │ │   email     │
+  └────┬────┘ └──────┬─────┘ └──────┬───┘ └────────┬────┘
+       │             │               │              │
+  ┌────▼────┐ ┌──────▼─────┐ ┌──────▼───┐ ┌────────▼────┐
+  │  iOS    │ │ Android    │ │  SMS     │ │   Email     │
+  │ Workers │ │  Workers   │ │ Workers  │ │  Workers    │
+  └────┬────┘ └──────┬─────┘ └──────┬───┘ └────────┬────┘
+       │             │               │              │
+       ▼             ▼               ▼              ▼
+     APNs           FCM           Twilio        SendGrid
+       │             │               │              │
+       └─────────────┴───────────────┴──────────────┘
+                             │
+                       Devices / Inboxes
+
+  ┌───────────────────────────────────────────────────────┐
+  │                 RELIABILITY LAYER                      │
+  │                                                       │
+  │  Deduplication:  Redis SETNX event_id (24h TTL)       │
+  │  Retry:          exponential backoff + DLQ            │
+  │  Preferences:    Redis cache (opt-out per channel)    │
+  │  Invalid tokens: remove on APNs/FCM error response   │
+  └───────────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-autocomplete" data-diff="m" data-title="search autocomplete (google suggest) trie · top-k caching · batch aggregation"><div class="scard-hdr"><div class="scard-title">Search Autocomplete (Google Suggest)</div><div class="scard-sub">Vol 1 · Ch.13 · Trie · Top-K caching · Batch aggregation</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+As a user types, return the top 10 relevant completions within 100ms. At Google scale: billions of queries/day, completions must reflect recent search trends, and the trie data structure must be small enough to serve from cache.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Trie with top-K at each node** — Prefix tree. Each node caches the top-K most frequent completions for that prefix. Query = traverse to prefix node, return cached top-K. No traversal of subtree needed.
+- **Batch aggregation, not real-time trie updates** — Don't update the trie on every query. Aggregate query logs daily via MapReduce. Rebuild trie weekly. Hot trending terms can be refreshed more frequently.
+- **Redis for trie serving** — Serialize trie into Redis. Key = prefix, value = JSON array of top-K suggestions with scores. HGETALL returns suggestions in <1ms. No tree traversal at query time.
+- **CDN for common prefixes** — Top 100 prefixes (single characters, common 2-grams) are static. Cache their suggestions in CDN. Eliminates round-trip for the most common keystrokes.
+- **Browser debounce** — Don't query on every keystroke. Query after 100-200ms of no typing. Reduces QPS by ~10× at the client side.
+- **Trie sharding** — Shard by first character of prefix (or first 2 characters for finer sharding). 26 primary shards, each independently scalable.
+- **Filter inappropriate completions** — Content filter removes hateful/inappropriate suggestions before storing in trie. Allowlist/blocklist maintained separately.
+
+> Cache top-K at every trie node, batch-rebuild weekly from aggregated logs, serve from Redis or CDN. Browser debounce is an underrated optimization — cuts QPS 10× for free.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The surprising scaling insight: browser debounce is the most impactful optimization. 10× QPS reduction for free, before any infrastructure change. The second insight: CDN coverage of top 10K prefixes handles 90% of all traffic — the backend only sees the long tail. Together these two techniques mean the backend can be relatively modest even for Google-scale query volumes.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-component framing.
+2. "Autocomplete has two components: the data pipeline that builds the suggestion index, and the query service that serves suggestions in real-time."
+3. "Data pipeline: log all search queries. Aggregate daily via MapReduce to get frequency counts per prefix. Store top-10 completions per prefix in a trie. Serialize trie into Redis with prefix as key and suggestions array as value. Rebuild weekly."
+4. "Query service: user types → browser debounces 100ms → API query → Redis HGET on prefix → return top-10 in <5ms. CDN caches results for top 10,000 common prefixes."
+5. "For trending events: monitor query log in real-time. Viral term not in trie? Inject as temporary hot-term entry. Expires on next full rebuild."
+6. "Trie shard by first character of prefix. 26 shards, each independently scalable."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+════════════════ QUERY PATH ══════════════════════
+
+  User types "sta"
+       │  (browser debounces 100-200ms)
+       ▼
+  ┌────────────────────────────────────────────────┐
+  │  Browser / Client                               │
+  │  Debounce: only send after 100ms pause          │
+  │  (reduces QPS 10× vs per-keystroke)             │
+  └──────────────────────┬─────────────────────────┘
+                         │ GET /autocomplete?q=sta
+  ┌──────────────────────▼─────────────────────────┐
+  │  CDN  (top 10K prefixes cached, ~90% HIT rate) │
+  └──────────────────────┬─────────────────────────┘
+                         │ MISS (rare prefix)
+  ┌──────────────────────▼─────────────────────────┐
+  │  API Server  (stateless)                        │
+  │  Shard routing: first char → shard 's'          │
+  └──────────────────────┬─────────────────────────┘
+                         │
+  ┌──────────────────────▼─────────────────────────┐
+  │  Redis   (serialized trie)                      │
+  │  HGET trie:sta → ["starbucks","star","startup"] │
+  │  with scores (frequency + freshness)            │
+  └────────────────────────────────────────────────┘
+
+  ════════════════ DATA PIPELINE ════════════════════
+
+  ┌─────────────────────────────────────────────────┐
+  │  Search Query Log  (Kafka stream)                │
+  │  10B queries/day                                │
+  └──────────────────────┬──────────────────────────┘
+                         │
+  ┌──────────────────────▼──────────────────────────┐
+  │  MapReduce  (runs nightly)                       │
+  │  Aggregate: query → frequency count              │
+  │  Compute: top-K completions per prefix           │
+  └──────────────────────┬──────────────────────────┘
+                         │
+  ┌──────────────────────▼──────────────────────────┐
+  │  Trie Builder                                    │
+  │  Build: prefix → [top-10 suggestions + scores]  │
+  │  Serialize to Redis (shadow deploy)             │
+  └──────────────────────┬──────────────────────────┘
+                         │ atomic swap (blue-green)
+  ┌──────────────────────▼──────────────────────────┐
+  │  Redis  (live trie, 26 shards by first char)    │
+  │  500 MB total  │  <1ms lookup latency            │
+  └────────────────────────────────────────────────┘
+
+  Hot-term injection: real-time spike detector
+  → viral term not in trie → inject temp entry
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-googledrive" data-diff="m" data-title="google drive / file storage block-level storage · delta sync · deduplication"><div class="scard-hdr"><div class="scard-title">Google Drive / File Storage</div><div class="scard-sub">Vol 1 · Ch.15 · Block-level storage · Delta sync · Deduplication</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a file storage and sync system. Users upload files, access them from multiple devices, and changes sync automatically. Core challenges: handling large files efficiently (don't re-upload unchanged content), concurrent edits, and offline support.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Block-level storage** — Files split into fixed blocks (4MB each). Each block identified by SHA-256(block_content). Only changed blocks need uploading. A 1GB file with a 1-line edit = only 1 block re-uploaded.
+- **Content-addressed deduplication** — If SHA-256(block) already exists in the block store, don't upload — just reference the existing block. Multiple files sharing the same content don't duplicate storage.
+- **Metadata DB vs block storage** — Metadata DB: file_id, path, owner, version, blocks[] array. Block store: S3, addressed by block hash. DB query returns block list; client fetches blocks from S3 in parallel.
+- **Delta sync** — Client maintains local block map. On sync: compare local blocks with server blocks. Only upload/download changed blocks. Network usage proportional to change size, not file size.
+- **Conflict resolution** — Two devices edit same file offline. Server receives two conflicting versions. Default: keep both (Dropbox creates 'Conflicted Copy'). Advanced: three-way merge for text files.
+- **Sync notification** — Server sends change events to connected devices via WebSocket or long polling. Device receives event → downloads changed blocks.
+- **Offline support** — Client queues changes locally while offline. On reconnect: replay local queue, detect conflicts, sync.
+
+> Block-level storage + content-addressed deduplication is the core insight. Only changed blocks sync. Identical content across files shares storage. This is what makes Dropbox and Google Drive efficient.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The 500 PB raw storage number sounds daunting, but S3 handles it transparently. The real scaling challenge is the metadata layer at 50 TB — this is too large for a single MySQL instance.
+
+Sharding strategy: shard metadata by user_id using consistent hashing. Each shard holds ~50 GB of metadata. 1000 shards = 50 TB covered. Cross-shard queries (e.g., "find all files with this content hash across all users") are expensive — avoid by designing APIs to always query by user_id first.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Three-store framing.
+2. "Google Drive has three distinct storage concerns: file metadata (what files exist, their versions, their block lists), block content (the actual bytes), and sync state (which devices have which versions)."
+3. "Block-level storage: files split into 4MB blocks, each identified by SHA-256(content). Only changed blocks sync — a 1GB file with a 1-line edit transfers only 4MB."
+4. "Deduplication: if SHA-256(block) already exists in S3, don't upload — just reference it. Identical content across users and versions shares one copy of each block."
+5. "Sync: on file change, client computes block diff vs last-synced state. Uploads only new/changed blocks. Server sends sync event to other devices via WebSocket. Devices download only changed blocks."
+6. "Conflicts: optimistic locking with version number on file. Two concurrent edits → second write rejected with 409. Client creates a forked version (Dropbox-style conflicted copy). User resolves manually."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════ UPLOAD / SYNC FLOW ═══════════════════
+
+  Client (File changed)
+     │
+  ┌──▼──────────────────────────────────────────────┐
+  │  Block Engine (client-side)                      │
+  │                                                  │
+  │  1. Split file into 4MB blocks                   │
+  │  2. Compute SHA-256 per block                    │
+  │  3. Compare with last-sync block map             │
+  │  4. Identify NEW or CHANGED blocks only          │
+  └──┬──────────────────────────────────────────────┘
+     │  POST /sync  {file_id, version, blocks[]}
+     ▼
+  ┌─────────────────────────────────────────────────┐
+  │  Sync Service                                    │
+  │                                                  │
+  │  Check: server_version == client_expected?       │
+  │  NO → 409 Conflict (client re-fetches, merges)  │
+  │  YES → continue                                 │
+  └──┬──────────────────────────────────────────────┘
+     │
+     ├──► Check block store: does SHA-256 exist?
+     │         YES → skip upload (dedup!)
+     │         NO  → upload block to S3
+     │
+  ┌──▼──────────────────────────────────────────────┐
+  │  Metadata DB  (Cassandra, shard by user_id)      │
+  │                                                  │
+  │  file_id → {path, owner, version, blocks[]}      │
+  │  version atomically incremented                  │
+  └──┬──────────────────────────────────────────────┘
+     │
+  ┌──▼──────────────────────────────────────────────┐
+  │  Notification Queue (Kafka)                      │
+  │  → sync events pushed to other devices          │
+  └──┬──────────────────────────────────────────────┘
+     │  WebSocket push to connected devices
+     ▼
+  Device B: download only changed blocks from S3
+
+  ═══════════════ STORAGE LAYERS ═════════════════════
+
+  ┌──────────────────────────────────────────────────┐
+  │  Block Store    S3                               │
+  │  key = SHA-256(block_content)                    │
+  │  Same block used by multiple files/versions      │
+  │  → content-addressed deduplication               │
+  │                                                  │
+  │  Metadata DB   Cassandra                         │
+  │  file hierarchy, version history, block lists   │
+  │                                                  │
+  │  Cache          Redis                            │
+  │  hot file metadata, recent block hashes          │
+  └──────────────────────────────────────────────────┘
+
+  CONFLICT RESOLUTION:
+  ┌──────────────────────────────────────────────────┐
+  │  Optimistic locking: every write includes        │
+  │  expected_version. Mismatch → 409.               │
+  │                                                  │
+  │  Client forks: keep both versions                │
+  │  (file.txt + file_conflict_2026.txt)             │
+  │  User resolves manually                          │
+  └──────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-proximity" data-diff="m" data-title="proximity service (yelp) geohash · quadtree · find nearby businesses"><div class="scard-hdr"><div class="scard-title">Proximity Service (Yelp)</div><div class="scard-sub">Vol 2 · Ch.1 · Geohash · Quadtree · Find nearby businesses</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Return N nearest businesses within radius R from the user's current location. Must handle billions of queries per day with sub-100ms response. Unlike Nearby Friends, businesses don't move — this is a static spatial index problem.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Geohash** — Encode lat/lng as base32 string. Nearby locations share a prefix. Level 6 (~1.2km grid) suits most proximity searches. Query: target cell + 8 neighbors (prevents boundary edge cases).
+- **Quadtree** — Recursively subdivide 2D space into 4 quadrants until ≤100 businesses per cell. In-memory tree. Fast reads. Complex updates.
+- **Boundary problem** — A business just across the cell boundary won't appear in a single-cell query. Always query target cell + all 8 adjacent cells.
+- **Redis GEORADIUS** — Redis supports native geo commands: GEOADD, GEORADIUS. Stored as sorted set with score = geohash. Convenient but less flexible than custom geohash approach for complex filters.
+- **Read vs write ratio** — Location searches: extremely read-heavy. Business updates: infrequent. Use read replicas heavily. Cache popular city-category combinations.
+- **Business service decoupled** — Location search returns business IDs only. Business detail (name, hours, rating) fetched from separate business service (cached in Redis).
+
+> Geohash + 9-cell query solves the boundary problem. Business detail is separate from location lookup. Cache popular (city, category) queries. Read replicas for scale.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+Read scaling is straightforward: add Redis read replicas, cache popular searches. The challenge is write consistency: business information (hours, address, status) changes frequently. Search index must stay fresh.
+
+Solution: event-driven update pipeline. Business service publishes change events to Kafka. Geohash index consumer updates Redis. Cache invalidation consumer clears affected search caches. All async. Brief staleness (seconds) is acceptable for location search.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-service framing.
+2. "Proximity service decomposes into two services: a location search service (geospatial index) and a business detail service (metadata). They scale independently."
+3. "Location search: geohash-based index in Redis. User location → encode to level-6 geohash → query Redis for businesses in target cell + 8 adjacent cells → return list of business_ids within exact distance."
+4. "Business detail: business_ids → fetch from Redis cache (populated from MySQL). Return name, category, rating, hours."
+5. "Boundary problem: always query 9 cells. Apply exact Haversine distance filter after geohash lookup to remove false positives from adjacent cells."
+6. "Scale: 6 GB geohash index in Redis. Cache popular (city, category) queries. 87K QPS easily handled."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════ SEARCH REQUEST FLOW ══════════════════
+
+  User  (lat=37.77, lng=-122.41, radius=5km, cat=food)
+     │
+  ┌──▼────────────────────────────────────────────────┐
+  │  Location Search Service                           │
+  │                                                   │
+  │  Step 1: encode lat/lng to geohash level 6        │
+  │          37.77,-122.41 → "9q8yy"                  │
+  │                                                   │
+  │  Step 2: find 9-cell neighborhood                 │
+  │          target cell + 8 adjacent cells           │
+  │          (prevents boundary miss)                 │
+  │                                                   │
+  │  Step 3: Redis GEORADIUS on all 9 cells           │
+  │          → list of business_ids                  │
+  │                                                   │
+  │  Step 4: exact Haversine distance filter          │
+  │          remove businesses > 5km actual dist      │
+  │                                                   │
+  │  Step 5: return business_ids (sorted by dist)     │
+  └──┬────────────────────────────────────────────────┘
+     │  business_ids
+  ┌──▼────────────────────────────────────────────────┐
+  │  Business Service                                  │
+  │  Fetch: name, category, rating, hours, photos     │
+  │  From:  Redis cache → MySQL (miss)                │
+  └──┬────────────────────────────────────────────────┘
+     │  enriched results
+     ▼
+  Return ranked list to user
+
+  ═══════════════ DATA STORES ══════════════════════════
+
+  ┌──────────────────────────────────────────────────┐
+  │  Redis GEO  (location index)                     │
+  │  GEOADD businesses {lng} {lat} {biz_id}          │
+  │  6 GB for 200M businesses                        │
+  │  Shard by geohash prefix                         │
+  └──────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────┐
+  │  MySQL  (business metadata source of truth)      │
+  │  id, name, category, lat, lng, hours, rating     │
+  │  Sharded by business_id                          │
+  └──────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────┐
+  │  Redis  (popular query cache)                    │
+  │  key = {city}:{category}:{radius}                │
+  │  value = top-20 results (serialized)             │
+  │  TTL = 10 min  (business hours change daily)     │
+  └──────────────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────────────┐
+  │  Update pipeline  (event-driven)                 │
+  │  Business update → Kafka → geo index consumer   │
+  │  → Redis GEOADD update + cache invalidation      │
+  └──────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-hotel" data-diff="m" data-title="hotel reservation system optimistic locking · inventory model · double-booking prevention"><div class="scard-hdr"><div class="scard-title">Hotel Reservation System</div><div class="scard-sub">Vol 2 · Ch.6 · Optimistic locking · Inventory model · Double-booking prevention</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a hotel reservation system like Booking.com or Marriott.com. The central challenge is preventing double-booking: two users simultaneously trying to book the last available room on the same date. Every design decision flows from this concurrency problem.
+
+The system also needs to handle search (finding available rooms across thousands of hotels), inventory management (tracking room availability by date), and payment — all with ACID guarantees on the booking transaction.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Inventory model** — Core table: room_inventory(hotel_id, room_type, date, total_rooms, reserved_rooms). Available = total - reserved. One row per room-type per date. Simple, queryable, lockable.
+- **SELECT FOR UPDATE (pessimistic lock)** — On booking: SELECT ... FOR UPDATE on the inventory row. Holds a row-level lock until transaction commits. Second concurrent booking for the same room/date blocks until first completes. Prevents double-booking.
+- **Idempotency key** — Client sends idempotency_key with every booking request. Server deduplicates: same key = return same result. Prevents double-charge on network retry.
+- **Availability cache** — Redis bitmap or hash per hotel: room_type:date → available_count. Search reads from cache. Booking writes through cache after DB commit. Cache miss falls back to DB.
+- **Overbooking allowance** — Airlines and hotels intentionally overbook by 5-10%. reserved_rooms can exceed total_rooms by a configured buffer. Business decision, not a bug.
+- **Date range query** — Searching for availability across a date range means checking every date in the range. Precompute availability windows. Index on (hotel_id, room_type, date).
+- **Saga for booking flow** — Booking involves multiple steps: reserve inventory → charge card → send confirmation. Use Saga pattern: each step has a compensating transaction (release reservation if payment fails).
+
+> SELECT FOR UPDATE prevents double-booking. Idempotency key prevents double-charging. Saga handles partial failures across reserve → pay → confirm. These three together make a correct booking system.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+Hotel reservation is a correctness problem masquerading as a scale problem. The real engineering challenge is not throughput — 167 bookings/sec is trivial for MySQL. The challenge is the SELECT FOR UPDATE contention on popular dates.
+
+Contention peaks when: (1) a flash sale starts and thousands of users race for limited inventory, (2) a popular date has one room left. The queue of blocked SELECT FOR UPDATE transactions can grow large. Mitigation: connection pool limits, request timeout with graceful 'sold out' message, queue-based booking for extreme flash sales (serialize via Kafka, process one at a time).
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Correctness-first framing.
+2. "Hotel reservation has one defining engineering challenge: preventing double-booking. Every design decision flows from that. I'll design around it."
+3. "Inventory model: room_inventory table with (hotel_id, room_type, date, total_rooms, reserved_rooms). Available = total - reserved. One row per room-type per date."
+4. "Booking transaction: SELECT reserved_rooms FROM room_inventory WHERE hotel_id=X AND room_type=Y AND date=Z FOR UPDATE. This acquires a row-level lock. Check available > 0. UPDATE reserved_rooms = reserved_rooms + 1. INSERT reservation record. COMMIT. Lock released. Second concurrent request for the same row blocks until this commits — double-booking impossible."
+5. "Idempotency key on every booking: Redis SETNX before the transaction. Network retry with same key returns cached result — no double-charge."
+6. "Search: Redis availability cache (hotel:room_type:date → count). 99% of traffic is search. Cache miss falls back to DB. Booking writes through cache after commit."
+7. "Saga for the full flow: reserve (sync) → charge PSP (async via Kafka) → send confirmation (async). Reservation held for 10 minutes. If payment fails: auto-cancel reservation, restore inventory."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+SEARCH FLOW:
+  User (dates, location) → Search Service
+    → Redis availability cache (hotel:type:date → count)
+    → cache miss → MySQL read replica
+    → return available hotels + prices
+
+  BOOKING FLOW:
+  User selects room + enters payment
+    → Reservation Service
+    → BEGIN TRANSACTION
+        SELECT * FROM room_inventory
+        WHERE hotel_id=1 AND room_type='deluxe' AND date='2026-12-31'
+        FOR UPDATE;          ← row-level lock acquired
+        -- check available = total - reserved > 0
+        UPDATE room_inventory SET reserved_rooms = reserved_rooms + 1;
+        INSERT INTO reservations (user_id, hotel_id, ..., status='PENDING');
+        COMMIT;              ← lock released
+    → Kafka: booking.created event
+    → Payment consumer: charge PSP
+    → Notification consumer: send email
+    → Update cache: decrement availability
+
+  DOUBLE-BOOKING PREVENTION:
+  User A ──► SELECT FOR UPDATE (acquires lock)
+  User B ──► SELECT FOR UPDATE (BLOCKS until A commits)
+  A commits (reserved_rooms = 1/1, available = 0)
+  B unblocks → reads available = 0 → rejected "sold out"
+
+  INVENTORY TABLE:
+  hotel_id │ room_type │ date       │ total │ reserved
+  ─────────┼───────────┼────────────┼───────┼─────────
+  1        │ deluxe    │ 2026-12-31 │  10   │   10
+  1        │ standard  │ 2026-12-31 │  20   │   15
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-nearby-friends" data-diff="m" data-title="nearby friends websocket · redis geo · location pub/sub · privacy"><div class="scard-hdr"><div class="scard-title">Nearby Friends</div><div class="scard-sub">Vol 2 · Ch.2 · WebSocket · Redis Geo · Location pub/sub · Privacy</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a Nearby Friends feature like Facebook's. Users opt in and can see which friends are physically nearby in real time. Unlike a proximity search (static data), every user's location changes constantly — the challenge is efficiently broadcasting location updates to the right subset of users (only mutual friends) at scale with minimal latency.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **WebSocket for bi-directional push** — Server needs to push location updates to clients without polling. WebSocket persistent connection per user. Each location server handles ~100K connections.
+- **Location update pipeline** — Client sends GPS coordinates every 30s. Location service writes to Redis GEO (GEOADD user:{uid} lng lat). Publishes to a Redis pub/sub channel for that user.
+- **Friend fan-out via pub/sub** — Each user's location server subscribes to pub/sub channels of all their friends. When friend A moves, A's server publishes. All servers with A's friends subscribed receive the update and push to those clients.
+- **Redis GEO for distance queries** — GEORADIUS or GEOSEARCH: find all users within N km. But for Nearby Friends, we don't query all users — we query only friends. Store friend locations in per-user Redis sorted sets or use GEODIST between specific pairs.
+- **Privacy opt-in** — Location sharing is opt-in. Store per-user preference. Never broadcast location of users who haven't opted in. Respect 'share with friends only' vs 'share with everyone' settings.
+- **Location history** — Cassandra for time-series location history: (user_id, timestamp) → (lat, lng). Enables features like 'was near you 2 hours ago'.
+- **Stale location handling** — If no update received for 5 minutes, mark user as location-unknown (may have turned off sharing). Remove from active GEO index.
+
+> The key insight: don't fan-out to all users, only to friends. Redis pub/sub per-user channel makes this natural — each server subscribes to only the channels of users it's hosting.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The fan-out math is the critical scale check. 50M active users × 1 update/30s = 1.67M updates/sec. Each update fans out to ~10 online friends = 16.7M WebSocket pushes/sec. Distributed across 800 servers = ~21K pushes/sec/server — very manageable.
+
+The number that hurts: a user with 5000 friends posting frequent updates. Their updates fan out to 5000 servers. Cap fan-out at 500 active friends to bound the worst case.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-flow framing: location publish vs location receive.
+2. "Nearby Friends has two flows: how a user's location gets to their friends' screens, and how a user sees their friends' locations."
+3. "Location publish: client sends GPS every 30s via WebSocket → location service writes to Redis GEO (GEOADD) and publishes to that user's pub/sub channel."
+4. "Location receive: each location server subscribes to pub/sub channels for all users it's currently hosting. When a friend moves, the server receives the publish and pushes via WebSocket to the client."
+5. "The fan-out is implicit in the pub/sub subscription graph — no explicit fan-out loop needed."
+6. "Privacy: opt-in only. Never fan-out for users who haven't enabled sharing. Block list checked before each push."
+7. "Scale: 800 WebSocket servers, Redis cluster for GEO + pub/sub, Cassandra for location history."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+Client (GPS every 30s)
+         |
+  Location Service
+  GEOADD user:{uid} lng lat    → Redis GEO
+  PUBLISH channel:{uid} {lat,lng}  → Redis Pub/Sub
+                                        |
+                    ┌───────────────────┤
+                    |                   |
+             Server A               Server B
+         (hosts User B)         (hosts User C)
+         subscribed to          subscribed to
+         channel:{uid}          channel:{uid}
+                    |                   |
+          WebSocket push         WebSocket push
+          to User B              to User C
+          "Friend X is 0.8km away"
+
+  FRIEND FILTER:
+  Only fan-out to servers hosting
+  active friends of the moving user.
+  Check friends:{uid} SET in Redis.
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-email" data-diff="m" data-title="email service smtp · mime · spam filtering · storage · search"><div class="scard-hdr"><div class="scard-title">Email Service</div><div class="scard-sub">Vol 2 · Ch.9 · SMTP · MIME · Spam filtering · Storage · Search</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design an email service like Gmail. The system must handle sending billions of emails per day across the internet (SMTP), storing petabytes of user email with fast search, and filtering spam. Two distinct problems: being a good email citizen on the internet (deliverability, spam reputation) and building the storage/search/sync system for mailboxes.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **SMTP for sending** — Simple Mail Transfer Protocol. Outbound path: client → SMTP gateway → DNS MX lookup for recipient domain → deliver to recipient's SMTP server. TLS required. SPF/DKIM/DMARC for authentication and anti-spoofing.
+- **IMAP/POP3 for reading** — IMAP: server-side mailbox, multiple device sync, partial fetch of headers. POP3: download and delete. IMAP is the modern standard. Gmail also exposes a proprietary API.
+- **Email storage** — Emails stored as raw MIME in object storage (S3). Metadata (from, to, subject, date, labels) in Cassandra. Email body indexed in Elasticsearch for full-text search. Never store email body in relational DB.
+- **Spam filtering pipeline** — Multi-layer: IP reputation → SPF/DKIM/DMARC validation → content analysis (Bayesian classifier + ML) → URL/attachment scanning → user feedback signals (mark as spam). Runs in parallel to minimize latency.
+- **Deliverability** — IP warm-up: don't send millions of emails from a new IP immediately. Start low, ramp up over weeks. Sending reputation tracked by receiving ISPs. Bounce rate, spam complaint rate, authentication pass rate all affect reputation.
+- **Thread grouping** — Emails grouped into threads by In-Reply-To and References headers. Thread metadata stored separately. Thread view is a UI concern but requires server-side grouping for fast rendering.
+- **Search** — Elasticsearch indexes: from, to, subject, body (tokenized). User searches 'project proposal from alice' → ES query with filters. ES updated async after email stored — 1-5s index lag acceptable.
+
+> SMTP/DKIM for internet delivery. Object storage for raw MIME. Cassandra for metadata. Elasticsearch for search. Kafka-based spam pipeline. Deliverability management is an ongoing operational concern, not just a design choice.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The 15 EB storage figure sounds extreme, but it's primarily driven by attachments (photos, documents). Gmail applies aggressive compression and deduplication: identical attachments across users share one copy (content-addressed storage). Photos compressed. This reduces effective storage 3-5×.
+
+The search scaling challenge: 10 TB Elasticsearch index for metadata + subjects. Body search index: 100 TB+. Elasticsearch cluster of 100+ nodes. User-level index sharding: route all queries for user X to the same shard, so user-specific searches never scatter-gather across all nodes.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-system framing: internet-facing vs user-facing.
+2. "Email service is really two systems: an internet-facing SMTP system (sending and receiving email from/to the world) and a user-facing storage/search/sync system."
+3. "Internet-facing: SMTP gateway for inbound. SMTP relay for outbound. SPF/DKIM/DMARC authentication on every outbound email — non-negotiable for deliverability. Spam filter pipeline running async."
+4. "User-facing: MIME stored in S3. Metadata (from/to/subject/date/labels) in Cassandra. Full-text search via Elasticsearch. IMAP + proprietary API for client sync."
+5. "Critical operational concern: sending reputation. New IPs need warm-up. Monitor bounce rate, spam complaint rate. Route to clean IPs if reputation degrades."
+6. "Search: Elasticsearch updated async after store. 5-second lag acceptable. Fallback to metadata-only search (Cassandra) if ES lags."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+SEND FLOW:
+  Client → SMTP Gateway
+    → SPF/DKIM sign
+    → Spam check (Kafka pipeline)
+    → DNS MX lookup (recipient domain)
+    → SMTP relay → recipient server
+
+  RECEIVE FLOW:
+  Inbound SMTP ← sender's server
+    → IP reputation check
+    → SPF/DKIM/DMARC validate
+    → Spam filter (Bayesian + ML)
+    → Store MIME in S3
+    → Write metadata to Cassandra
+    → Index in Elasticsearch (async)
+    → IMAP IDLE push to connected clients
+
+  STORAGE:
+  S3:          raw MIME files (body + attachments)
+  Cassandra:   metadata (from, to, subject, date, labels)
+               partition: (user_id, folder)
+               cluster: (received_date DESC)
+  Elasticsearch: full-text search index
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-leaderboard" data-diff="m" data-title="real-time gaming leaderboard redis sorted set · score aggregation · top-k"><div class="scard-hdr"><div class="scard-title">Real-time Gaming Leaderboard</div><div class="scard-sub">Vol 2 · Ch.12 · Redis sorted set · Score aggregation · Top-K</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a real-time leaderboard for a game with millions of players. The system must update scores in real time as players complete matches, return the global top-100 instantly, and show any player their own rank among millions of players. The challenge is making rank queries O(log N) rather than O(N) full scans.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Redis sorted set as the core** — ZADD leaderboard score player_id: O(log N). ZREVRANGE leaderboard 0 99: top-100 in O(100). ZREVRANK leaderboard player_id: rank of any player in O(log N). All operations fast regardless of total player count.
+- **Score updates** — Player finishes match → ZADD leaderboard new_score player_id. Redis automatically repositions the player. If player_id already exists, score is updated. Atomic — no race conditions.
+- **Cassandra as source of truth** — Redis sorted set is the serving layer. Cassandra stores: player_id → total_score, match history, score breakdown. On Redis failure: rebuild sorted set from Cassandra. Cassandra is the durable record.
+- **Segmented leaderboards** — Global leaderboard (all players). Regional (US, EU, Asia). Friends leaderboard (intersect global rank with friend list). Seasonal (reset weekly/monthly). Each is a separate Redis sorted set, updated simultaneously on score change.
+- **Top-K problem** — ZREVRANGE returns top K efficiently. For very large K (top 10M): Redis sorted set handles it but response size is large. Use pagination: ZREVRANGE 0 99, then 100 199, etc.
+- **Rank around me** — Player wants to see their rank + 5 players above and below. ZREVRANK to get rank R, then ZREVRANGE R-5 R+5 to get surrounding players. Two O(log N) Redis operations.
+- **Score aggregation for complex games** — Score = sum of many match scores. ZINCRBY instead of ZADD: atomically increment player's score by match_score. No read-modify-write race condition.
+
+> Redis sorted set is purpose-built for this problem. ZADD/ZREVRANK/ZREVRANGE at O(log N) handle all leaderboard operations efficiently. Cassandra as durable source of truth for rebuild.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The elegant scaling property of Redis sorted set: at 100M players, ZREVRANK is still O(log 100M) ≈ 27 comparisons. At 1B players: O(log 1B) ≈ 30 comparisons. The rank query time barely changes as the leaderboard grows.
+
+The real scaling question is write throughput: 167K ZINCRBY/sec. Redis single-threaded at 1M ops/sec handles this with 6× headroom. Redis 7.0 introduced threaded I/O, pushing this further. Redis is almost never the bottleneck for leaderboard systems.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Data structure first.
+2. "Leaderboard is a solved problem once you choose the right data structure. Redis sorted set gives you exactly what you need: O(log N) for all operations — insert, update, rank lookup, and range query."
+3. "Score update: ZINCRBY leaderboard match_score player_id. Atomic — no race condition possible. Player's score incremented, rank automatically adjusted."
+4. "Top-100: ZREVRANGE leaderboard 0 99. Returned in O(100) regardless of total player count."
+5. "Individual rank: ZREVRANK leaderboard player_id. O(log N). 100M players = 27 comparisons."
+6. "Surrounding players: ZREVRANK to get rank R, then ZREVRANGE R-5 R+5."
+7. "Durability: Cassandra stores all score history. Redis is the serving layer — rebuild from Cassandra on failure."
+8. "Multiple leaderboards: global, regional, friends, seasonal — each a separate sorted set, all updated in one Redis pipeline per score update."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+Match ends → Score Service
+         |
+  Pipeline (atomic):
+  ZINCRBY leaderboard:global     score  player_id
+  ZINCRBY leaderboard:region:us  score  player_id
+  ZINCRBY leaderboard:season_q2  score  player_id
+         |
+  Cassandra: INSERT match_result (player_id, score, ts)
+
+  LEADERBOARD QUERIES:
+  Top-100:
+    ZREVRANGE leaderboard:global 0 99 WITHSCORES
+
+  Player rank:
+    ZREVRANK leaderboard:global player_id
+    → rank = 15,432 (out of 100M)
+
+  Players around me (rank 15,432):
+    ZREVRANGE leaderboard:global 15427 15437 WITHSCORES
+    → 11 players centered on rank 15,432
+
+  Top-100 cache: Redis STRING, 1-second TTL
+  Prevents stampede on tournament end
+```
+
+</details>
+
+
+</div></div>
+</div>
 <div id="csec-h" class="cards-sec">Hard</div>
-<div class="cards-grid" id="cards-gh"></div>
+<div class="cards-grid" id="cards-gh">
+<div class="scard" id="card-kvstore" data-diff="h" data-title="distributed key-value store cap theorem · quorum · gossip · bloom filter"><div class="scard-hdr"><div class="scard-title">Distributed Key-Value Store</div><div class="scard-sub">Vol 1 · Ch.6 · CAP theorem · Quorum · Gossip · Bloom filter</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a distributed KV store like DynamoDB or Cassandra. The core tension is the CAP theorem — you cannot simultaneously guarantee consistency, availability, and partition tolerance.
+
+Every design decision (replication factor, quorum size, conflict resolution strategy) is a point on the CAP spectrum.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **CAP theorem** — Choose 2 of 3: Consistency (all nodes see same data), Availability (always responds), Partition Tolerance (works during network splits). In practice: partition tolerance is non-negotiable in distributed systems, so you choose between CP and AP.
+- **Quorum (W + R > N)** — N=3, W=2, R=2: any write is confirmed by 2 nodes, any read checks 2 nodes. Since W+R > N, at least 1 node is shared — guarantees you read the latest write.
+- **Vector clocks** — Each write increments [server, version] pair. Multiple conflicting versions can exist. Client resolves conflicts on read (last-write-wins or application merge).
+- **Gossip protocol** — Each node maintains a heartbeat table. Periodically gossips to random neighbors. Node marked down if heartbeat stale for T seconds. O(log N) propagation time.
+- **Sloppy quorum + hinted handoff** — If target replica is down, write to next healthy node with a hint. When downed node recovers, hint is delivered. Improves availability at cost of potential staleness.
+- **Write path (LSM tree)** — Write to commit log (durability) → MemTable (in-memory) → flush to SSTable (disk). Reads check MemTable first, then Bloom filter → SSTable.
+- **Bloom filter** — Probabilistic data structure: false positives possible, false negatives impossible. Tells you 'key definitely not in this SSTable' — avoids unnecessary disk reads.
+
+> W+R > N is the core formula. Gossip for failure detection. Vector clocks for conflict tracking. Bloom filters for read optimization. Know the read path and write path cold.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The hardest scaling problem is compaction — LSM trees accumulate SSTables on disk. Compaction merges SSTables and removes tombstones. During compaction, CPU and disk IO spike. In the worst case, compaction can't keep up with write rate, SSTables pile up, and read latency explodes (must check more files).
+
+Mitigation: tiered compaction (Cassandra) minimizes write amplification. Size-tiered compaction works better for write-heavy, leveled compaction for read-heavy. Monitor SSTable count per node — should stay in single digits. Alert when compaction lag grows.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. CAP-first framing.
+2. "A distributed KV store forces you to confront the CAP theorem immediately. Partition tolerance is non-negotiable — networks will split. So the question is: do we prioritize consistency or availability during a partition?"
+3. "I'd default to AP with tunable consistency — like Cassandra's model. For most use cases, stale reads for a few seconds are acceptable. You can tighten to QUORUM when the application needs it."
+4. "Data distribution: consistent hashing with virtual nodes. N=3 replicas. W=2, R=2 for QUORUM reads and writes."
+5. "Write path: client → coordinator → commit log + MemTable → async flush to SSTable. Bloom filter on each SSTable to avoid unnecessary disk reads."
+6. "Failure detection: gossip protocol — each node gossips heartbeat state to random neighbors. Node marked down if heartbeat stale for 10 seconds."
+7. "Conflict resolution: vector clocks track concurrent writes. Application resolves on read. Last-write-wins as fallback."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+┌──────────┐         ┌──────────────────────────────────┐
+  │  Client  │────────►│  Any Node = Coordinator           │
+  └──────────┘         │  (routes to replicas via ring)    │
+                       └─────────────┬────────────────────┘
+                                     │
+           ┌──────────────┬──────────┴──────────┐
+           ▼              ▼                      ▼
+     ┌──────────┐   ┌──────────┐          ┌──────────┐
+     │  Node A  │   │  Node B  │          │  Node C  │
+     │ (replica)│   │ (replica)│          │ (replica)│
+     └────┬─────┘   └────┬─────┘          └────┬─────┘
+          │              │                      │
+          ▼              ▼                      ▼
+     ┌──────────────────────────────────────────────┐
+     │              WRITE PATH (per node)            │
+     │                                               │
+     │  1. Commit Log  (durability, append-only)     │
+     │        ↓                                      │
+     │  2. MemTable    (in-memory sorted tree)       │
+     │        ↓  (threshold reached)                 │
+     │  3. SSTable     (immutable, on-disk)          │
+     │        ↓  (compaction)                        │
+     │  4. Merged SSTables (fewer, larger files)     │
+     └───────────────────────────────────────────────┘
+
+     ┌──────────────────────────────────────────────┐
+     │              READ PATH (per node)             │
+     │                                               │
+     │  1. MemTable           (fastest, in-memory)   │
+     │  2. Bloom Filter       (is key in SSTable N?) │
+     │  3. SSTable index      (find block offset)    │
+     │  4. SSTable block      (fetch from disk)      │
+     └───────────────────────────────────────────────┘
+
+     QUORUM  W=2, R=2, N=3:
+     ┌──────────────────────────────────────────────┐
+     │  W + R > N  →  at least 1 node is shared     │
+     │  →  reads always see the latest write        │
+     │                                               │
+     │  Gossip: each node gossips heartbeat to 3    │
+     │  random peers every 1s.  Dead if stale >10s  │
+     └───────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-newsfeed" data-diff="h" data-title="news feed (facebook/twitter) fan-out on write · fan-out on read · hybrid"><div class="scard-hdr"><div class="scard-title">News Feed (Facebook/Twitter)</div><div class="scard-sub">Vol 1 · Ch.11 · Fan-out on write · Fan-out on read · Hybrid</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a system where users see a personalized, chronologically-ordered feed of posts from accounts they follow. At scale, the fan-out problem (one post reaching millions of followers) and the feed freshness problem (celebrity accounts can't push to all followers in real-time) become the central challenges.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Fan-out on write (push model)** — When a post is created, immediately write post_id to every follower's feed cache. Fast reads. Expensive writes for high-follower accounts.
+- **Fan-out on read (pull model)** — On feed request, fetch posts from all followees. Merge and sort. Flexible but slow for users following 1000+ accounts.
+- **Hybrid approach (production)** — Push for regular users (<10K followers). Pull for celebrities. On feed request: merge pre-computed feed (from cache) with real-time pull from celebrities being followed.
+- **Redis sorted set per user** — Each user's feed: ZADD feed:{user_id} timestamp post_id. ZREVRANGE for paginated feed. Only store post_ids — hydrate full content separately.
+- **Feed cache size limit** — Store only most recent 1000 post_ids per user. Older posts loaded from DB directly. Most users never scroll past 1000 posts.
+- **Graph DB for social graph** — Friend/follower relationships are graph traversal problems. Neo4j or purpose-built graph DB (Facebook TAO) for friend-of-friend queries.
+- **Post hydration** — Feed contains only IDs. Hydrate post content and user profile from post cache and user cache separately. Parallelizable.
+
+> Fan-out on write for regular users, pull for celebrities, merge on read. Redis sorted set per user. Hydrate content after getting IDs. That's the production model.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The celebrity problem is the defining scaling challenge. The top 1000 accounts (Kardashians, Musk, Obama) combined have followers in the hundreds of millions. A post from any of them triggers a fan-out that would take hours with naive push.
+
+Hybrid solves this but introduces merge complexity. The merge operation at read time: ZREVRANGE the pre-computed feed + pull last N posts from each celebrity followee + merge + re-rank. This is O(celebrities_followed × N) — at 10 celebrities followed × 50 latest posts = 500 item merge. Fast.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Fan-out scale framing.
+2. "News feed has one defining challenge at scale: the fan-out problem. When Beyoncé posts, we can't push to her 200M followers in real-time. So we need a hybrid model."
+3. "Two flows: feed publishing and feed retrieval."
+4. "Publishing: user posts → fan-out service → for regular users (<10K followers): write post_id to each follower's Redis sorted set immediately. For celebrities: skip the push."
+5. "Retrieval: user requests feed → fetch pre-computed feed from Redis sorted set → merge with recent posts from celebrities they follow → hydrate post + user data from caches → return."
+6. "Storage: Redis sorted set per user. score = timestamp, member = post_id. Store only IDs, hydrate content separately. Cap at 1000 recent posts."
+7. "Deletion: don't purge feed cache. Just skip deleted/banned posts at hydration time."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════ WRITE PATH (fan-out) ════════════════
+
+  User creates post
+         │
+  ┌──────▼──────────┐
+  │  Post Service   │──► Cassandra (durable post store)
+  │  write post     │──► Redis (post content cache)
+  └──────┬──────────┘
+         │ publishes event
+  ┌──────▼──────────┐
+  │  Fan-out Service│
+  │  (Kafka worker) │
+  └──────┬──────────┘
+         │
+  ┌──────▼──────────────────────────────────────────┐
+  │  Is poster a celebrity? (followers > 10K)       │
+  │                                                 │
+  │  NO (regular user):                             │
+  │  → ZADD feed:{follower_id} ts post_id           │
+  │    for each of N followers (in parallel)        │
+  │                                                 │
+  │  YES (celebrity):                               │
+  │  → SKIP pre-push  (pull on read instead)        │
+  └─────────────────────────────────────────────────┘
+
+  ═══════════════ READ PATH (feed retrieval) ══════════
+
+  User requests feed
+         │
+  ┌──────▼──────────────────────────────────────────┐
+  │  Feed Service                                   │
+  │                                                 │
+  │  1. ZREVRANGE feed:{user_id} 0 49               │
+  │     → pre-computed post_ids (regular users)     │
+  │                                                 │
+  │  2. Pull last 20 posts from each followed       │
+  │     celebrity (direct Cassandra reads)          │
+  │                                                 │
+  │  3. Merge + sort by timestamp                   │
+  │                                                 │
+  │  4. Hydrate: post_ids → post content cache      │
+  │             user_ids  → user profile cache      │
+  └──────┬──────────────────────────────────────────┘
+         │
+  ┌──────▼──────────┐   ┌──────────────────────┐
+  │  Redis Cluster  │   │  Cassandra            │
+  │                 │   │                       │
+  │  feed:{uid}     │   │  post store           │
+  │  sorted set     │   │  (source of truth)    │
+  │  (1000 post_ids)│   │                       │
+  │  post cache     │   │  social graph         │
+  │  user cache     │   │  (who follows whom)   │
+  └─────────────────┘   └──────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-chat" data-diff="h" data-title="chat system (whatsapp/slack) websocket · message ordering · presence · group chat"><div class="scard-hdr"><div class="scard-title">Chat System (WhatsApp/Slack)</div><div class="scard-sub">Vol 1 · Ch.12 · WebSocket · Message ordering · Presence · Group chat</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a real-time chat system supporting 1-to-1 and group messaging. Core challenges: maintaining persistent WebSocket connections at scale, ensuring message ordering within a conversation, handling offline users, and managing online presence for millions of users.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **WebSocket for real-time** — HTTP is request-response. WebSocket is full-duplex — server can push without client polling. Essential for real-time messaging.
+- **Message storage: Cassandra** — Write-heavy, append-only, query by (conversation_id, message_id). Wide column store is perfect. Row key = channel_id, clustering key = message_id (time-ordered). Not relational — no joins needed.
+- **Message ordering** — Don't use DB auto-increment — it doesn't work across distributed systems. Use Snowflake IDs: monotonically increasing within a conversation ensures correct order.
+- **Presence: heartbeat + Redis** — Client sends heartbeat every 5s. Presence service updates last_active_at in Redis. Threshold: if last_active_at > 30s ago → offline. Fan-out presence changes to friends via Redis pub/sub.
+- **Redis pub/sub for routing** — Chat servers subscribe to channels for connected users. When message arrives for user B: publish to Redis channel for user B's connection. Chat server holding B's WebSocket receives it and pushes to B.
+- **Group chat fan-out** — Message to group → look up all members → for each online member: publish to their Redis channel. For offline: store in their inbox. Cap group size (e.g., 500) to bound fan-out cost.
+- **Offline delivery** — Offline user → store message in inbox table. On reconnect: client sends last_seen_message_id, server delivers all messages since then.
+
+> WebSocket for real-time. Cassandra for message storage. Redis pub/sub for routing across chat servers. Snowflake IDs for ordering. Heartbeat + Redis for presence. These five components together handle 1B users.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The critical bottleneck is WebSocket connections — each consumes ~10KB RAM on the server. 500M DAU × 30% online at peak = 150M concurrent connections × 10KB = 1.5 TB RAM. At 64GB RAM per server: 24,000 chat servers. In practice: connections are idle most of the time, multiplexed, and servers can handle 500K connections each — 300 servers.
+
+The second bottleneck is message fan-out for large groups. WhatsApp caps groups at 1024. Telegram caps at 200K (with delivery tradeoffs). Discord uses 50K per server. Choose your cap based on your fan-out budget.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Two-problem framing.
+2. "Chat has two distinct hard problems: routing messages to online users in real-time, and reliably delivering messages to offline users. I'll address both."
+3. "Real-time routing: WebSocket connections from clients to chat servers. When a message arrives: write to Cassandra (durability), then publish to Redis pub/sub on a channel keyed by recipient user_id. The chat server holding the recipient's connection subscribes to that channel and pushes to the client."
+4. "Offline delivery: every message written to a per-conversation inbox in Cassandra. On reconnect: client sends last_seen_message_id. Server queries Cassandra for all messages since then. No gaps."
+5. "Message ordering: Snowflake IDs. Monotonically increasing, no coordination, correct sort order within a conversation."
+6. "Presence: client heartbeat every 5 seconds. Redis stores last_active_at. Stale > 30s = offline. Presence changes fanned out to friends via pub/sub."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+════════════════ MESSAGE FLOW ════════════════════
+
+  Client A                              Client B
+  ┌────────┐                            ┌────────┐
+  │ App    │──── WebSocket ────────────►│ App    │
+  └───┬────┘                            └────┬───┘
+      │                                      │
+  ┌───▼──────────────────────────────────────▼───┐
+  │              Chat Server Pool                │
+  │  (assigned via consistent hash on user_id)   │
+  │                                              │
+  │  Chat Server 1          Chat Server 2        │
+  │  [Client A conn]        [Client B conn]       │
+  └──────────────┬──────────────────┬────────────┘
+                 │                  │
+  ┌──────────────▼──────────────────▼────────────┐
+  │              Message Service                  │
+  │                                              │
+  │  Step 1: Write to Cassandra (durability)     │
+  │  Step 2: Publish to Redis pub/sub channel    │
+  │          channel = user:{recipient_id}       │
+  └──────────────┬──────────────────┬────────────┘
+                 │                  │
+  ┌──────────────▼──────┐  ┌────────▼────────────┐
+  │  Cassandra           │  │  Redis Pub/Sub       │
+  │                      │  │                     │
+  │  PK: conv_id         │  │  channel per user   │
+  │  CK: msg_id (snowfl) │  │  Chat server 2      │
+  │  (conversation log)  │  │  subscribed to B's  │
+  │                      │  │  channel → pushes   │
+  │  Also: inbox table   │  │  to B's WebSocket   │
+  │  for offline msgs    │  │                     │
+  └──────────────────────┘  └─────────────────────┘
+
+  ════════════════ PRESENCE ═════════════════════
+
+  ┌────────────────────────────────────────────────┐
+  │  Client heartbeat every 5s                     │
+  │       │                                        │
+  │  Presence Service                              │
+  │       │                                        │
+  │  Redis HSET presence:{uid} last_active now     │
+  │                                                │
+  │  Fan-out presence change to friends via        │
+  │  Redis pub/sub (friends:{uid} channel)         │
+  │                                                │
+  │  Offline threshold: last_active > 30s ago      │
+  └────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-youtube" data-diff="h" data-title="youtube / video platform transcoding pipeline · abr streaming · cdn"><div class="scard-hdr"><div class="scard-title">YouTube / Video Platform</div><div class="scard-sub">Vol 1 · Ch.14 · Transcoding pipeline · ABR streaming · CDN</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Host and stream video at scale. Two completely different engineering challenges: the write side (ingest and transcode large video files) and the read side (stream to millions of concurrent viewers globally with minimal latency and adaptive quality).
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Pre-signed S3 upload URL** — Client gets a temporary S3 URL directly. Uploads multi-GB video to S3 — API server never handles video bytes. After upload: S3 triggers transcode event.
+- **TUS resumable upload** — Chunked upload protocol. Client tracks which chunks succeeded. Resume from last committed chunk on network failure. Essential for mobile uploads and large files.
+- **Parallel transcoding by resolution** — DAG pipeline: one worker per resolution (360p, 720p, 1080p, 4K) running simultaneously. Video available at 360p within minutes while 4K is still processing.
+- **HLS/DASH adaptive bitrate** — Each resolution = HLS manifest listing 6-second segments. Master manifest lists all resolution variants. Client measures bandwidth, switches quality tier per segment automatically.
+- **CDN for video delivery** — Video streamed directly from CDN edge — never from origin. CDN absorbs 99%+ of bandwidth. Popular videos pre-warmed at edge during processing.
+- **Origin shielding** — CDN POPs (500+) don't all fetch from S3 on cache miss. A smaller set of 'shield' POPs fetch from S3. All other POPs fetch from shields. Reduces S3 request rate by 50×.
+- **Metadata DB separate from blobs** — Video metadata (title, uploader, likes, view count) in PostgreSQL. Video binary data in S3. Never store blobs in relational DB.
+
+> Pre-signed URL for upload (API never touches bytes). Parallel per-resolution transcoding. CDN-first streaming — always from edge, never from origin. ABR for adaptive quality. These four ideas define the architecture.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The 5.8 Tbps CDN bandwidth requirement is the most striking number. This is why multi-CDN is not optional at YouTube scale — no single CDN provider has enough capacity in every region. YouTube maintains relationships with Akamai, Google's own CDN infrastructure (GGC caches in ISP data centers), and CloudFlare, routing between them based on real-time latency probes.
+
+The transcode queue is the second scaling concern: 60 TB/hr of incoming video needs to produce 450 TB/hr of transcoded output. GPU instances (Nvidia A100 class) can transcode 1 hour of 4K video in ~5 minutes. 30K upload-hours/hr ÷ 12 (5min transcodes per GPU-hour) = 2,500 GPU instances needed at peak.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Upload then stream framing.
+2. "I'll design two flows: video upload and video playback. They have completely different requirements."
+3. "Upload: creator gets a pre-signed S3 URL from our API. Client uploads directly to S3 — our servers never touch the video bytes. S3 triggers a transcode event via SQS/Kafka."
+4. "Transcoding: DAG pipeline with one worker per resolution running in parallel. 360p available within 2 minutes. 4K finishes last. Output: HLS segments and manifests stored in S3, distributed to CDN."
+5. "Playback: viewer requests video. API returns CDN URL for HLS master manifest. Client fetches manifest, measures bandwidth, streams the appropriate quality tier. Quality switches every 6 seconds based on current bandwidth."
+6. "CDN is the critical infrastructure — absorbs 99%+ of all bandwidth. App servers handle only metadata APIs."
+7. "Origin shielding: CDN POPs don't go to S3 on cache miss — they go to a regional shield POP. Reduces S3 load by 50×."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════════ UPLOAD FLOW ══════════════════════
+
+  Creator
+     │  1. POST /videos → get upload session + videoId
+     ▼
+  ┌─────────────────────┐
+  │    Video API         │──► Metadata DB (status=PENDING)
+  │  (stateless servers) │
+  └─────────────────────┘
+     │  2. returns pre-signed S3 URL
+     ▼
+  Creator uploads directly to S3
+  (TUS resumable: 10MB chunks, resume on failure)
+     │
+     ▼
+  S3 Raw Bucket  ──► ObjectCreated event ──► SQS/Kafka
+                                                │
+                                                ▼
+  ═══════════════ TRANSCODING PIPELINE ════════════════
+
+  ┌──────────────────────────────────────────────────┐
+  │  Processing Orchestrator  (DAG workflow)          │
+  │                                                  │
+  │    ┌─────────┐  ┌──────────┐  ┌──────────────┐  │
+  │    │Splitter │  │Thumbnail │  │  Audio proc  │  │
+  │    │(GOPs)   │  │generator │  │  (AAC/Opus)  │  │
+  │    └────┬────┘  └──────────┘  └──────────────┘  │
+  │         │  (parallel per resolution)             │
+  │    ┌────▼────────────────────────────────────┐   │
+  │    │  360p    720p    1080p    4K             │   │
+  │    │  worker  worker  worker  worker          │   │
+  │    │  (GPU spot instances)                   │   │
+  │    └────┬────────────────────────────────────┘   │
+  └─────────┼────────────────────────────────────────┘
+            │  HLS segments (.ts files + .m3u8)
+            ▼
+  S3 Processed Bucket ──► CDN (push warm for popular)
+
+  ═══════════════════ PLAYBACK FLOW ════════════════════
+
+  Viewer
+     │  GET /videos/{id}
+     ▼
+  ┌──────────────────┐   ┌──────────────────────────┐
+  │  Video API        │──►│  Metadata DB + Cache     │
+  └────────┬──────────┘   └──────────────────────────┘
+           │  returns CDN URL for HLS master manifest
+           ▼
+  CDN Edge (nearest POP)
+     │  serves: master.m3u8  →  lists quality variants
+     │  serves: 1080p.m3u8   →  lists all 6s segments
+     │  serves: seg001.ts, seg002.ts ...
+     ▼
+  Client (adaptive bitrate logic):
+     bandwidth > 1.3× current → switch UP
+     bandwidth < 0.8× current → switch DOWN
+     buffer < 10s             → switch DOWN
+
+  ┌────────────────────────────────────────────────────┐
+  │  CDN ARCHITECTURE                                  │
+  │                                                    │
+  │  500+ Edge POPs  →  10-20 Shield POPs  →  S3      │
+  │  (serve viewers)     (fetch from S3)    (origin)  │
+  │                                                    │
+  │  Origin shielding: 50× fewer S3 requests           │
+  │  Multi-CDN: route to best-performing CDN/region    │
+  └────────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-msgqueue" data-diff="h" data-title="distributed message queue (kafka) partitioned log · consumer groups · exactly-once"><div class="scard-hdr"><div class="scard-title">Distributed Message Queue (Kafka)</div><div class="scard-sub">Vol 2 · Ch.4 · Partitioned log · Consumer groups · Exactly-once</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a distributed message queue that can handle millions of events per second with durability, ordering guarantees, and the ability for multiple independent consumer groups to read the same stream. The system must survive broker failures without data loss.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Partitioned log model** — Topic split into N partitions. Each partition is an ordered, append-only log. Messages in a partition are strictly ordered. Messages across partitions are not.
+- **Consumer groups** — Each consumer group reads the topic independently. Within a group: each partition assigned to exactly one consumer. Multiple groups on same topic: no interference. Enables pub/sub (multiple consumers) and point-to-point (one consumer per message).
+- **Offset management** — Consumer tracks its position (offset) per partition. Commit offset after processing. On failure/restart: resume from last committed offset. Enables at-least-once delivery.
+- **Replication** — Each partition: 1 leader + N-1 followers. Leader handles reads/writes. Followers replicate asynchronously. On leader failure: a follower becomes leader (ISR — In-Sync Replica list).
+- **Delivery semantics** — At-most-once: commit before processing (may lose). At-least-once: commit after processing (may duplicate). Exactly-once: idempotent producer + transactional consumer (strongest guarantee, most complex).
+- **Retention policy** — Messages retained for N days regardless of consumption. Consumers can replay from any offset. This is Kafka's killer feature vs traditional queues.
+- **Log compaction** — Alternative to TTL retention: keep only the latest value per key. Useful for change data capture (CDC) — compacted topic always has the current state of every entity.
+
+> Partitioned log + consumer groups + offset management. Replayability is Kafka's defining feature vs RabbitMQ. At-least-once delivery is the production default; exactly-once is available but expensive.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The scaling lever is partition count. You cannot have more consumers in a group than partitions — adding consumer beyond that is wasted capacity. If you need 1000 consumers: you need 1000 partitions minimum.
+
+Partition rebalancing is the operationally painful moment: adding consumers to a group, adding partitions, or broker failure all trigger rebalancing. During rebalance, all consumers pause (stop-the-world). New Kafka versions introduce incremental cooperative rebalancing to minimize this pause.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Three-concept framing.
+2. "Distributed message queue has three core concepts: partitioning (for parallelism and ordering), consumer groups (for independent read streams), and offsets (for reliable delivery)."
+3. "Partitioning: each topic split into N partitions. Messages with the same key always go to the same partition — ordering guaranteed per key. Different partitions consumed in parallel."
+4. "Consumer groups: each group reads the topic independently. Within a group: each partition assigned to one consumer — no duplicate processing. Multiple groups = pub/sub."
+5. "Offsets: consumer tracks its read position per partition. Commit after processing. On restart: resume from last committed offset. At-least-once delivery by default."
+6. "Replication: each partition has 1 leader + 2 followers. acks=all: wait for all ISR before confirming write. No data loss on leader failure."
+7. "Replayability: messages retained for 7 days. Any consumer group can replay from offset 0. This is Kafka's key advantage over RabbitMQ."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════ KAFKA ARCHITECTURE ══════════════════
+
+  Producers
+  ┌─────┐ ┌─────┐ ┌─────┐
+  │ P1  │ │ P2  │ │ P3  │   acks=all (wait for ISR)
+  └──┬──┘ └──┬──┘ └──┬──┘
+     └────────┼───────┘
+              │
+  ┌───────────▼──────────────────────────────────────┐
+  │  Kafka Cluster  (3 brokers shown)                 │
+  │                                                  │
+  │  Topic: "user-events"  (partitioned)             │
+  │                                                  │
+  │  Partition 0  ──────────────────────────────►    │
+  │  [msg0][msg3][msg6]  leader: Broker 1            │
+  │                      replicas: Broker 2, 3       │
+  │                                                  │
+  │  Partition 1  ──────────────────────────────►    │
+  │  [msg1][msg4][msg7]  leader: Broker 2            │
+  │                      replicas: Broker 1, 3       │
+  │                                                  │
+  │  Partition 2  ──────────────────────────────►    │
+  │  [msg2][msg5][msg8]  leader: Broker 3            │
+  │                      replicas: Broker 1, 2       │
+  └───────────┬──────────────────────────────────────┘
+              │
+  ┌───────────┴───────────────────────────────────────┐
+  │             Consumer Groups (independent)          │
+  │                                                   │
+  │  Group A (Analytics)    Group B (Notification)    │
+  │  C1 → P0                C4 → P0                  │
+  │  C2 → P1                C5 → P1                  │
+  │  C3 → P2                C6 → P2                  │
+  │  offset: 847            offset: 1203             │
+  │  (each group reads independently, no conflict)   │
+  └───────────────────────────────────────────────────┘
+
+  ═══════════════ WRITE PATH ═══════════════════════════
+
+  Producer → partition selection:
+    keyed msg:   hash(key) % N  → same key, same partition
+    unkeyed msg: round-robin    → even distribution
+
+  Leader writes to local log  →  followers replicate
+  acks=all: leader waits for all ISR acknowledgment
+  acks=1:   leader confirms, async replicate (faster)
+  acks=0:   fire and forget (may lose on crash)
+
+  ═══════════════ OFFSET & DELIVERY ═════════════════
+
+  at-most-once:   commit offset BEFORE processing
+  at-least-once:  commit offset AFTER processing   ← default
+  exactly-once:   idempotent producer + transactions
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-payment" data-diff="h" data-title="payment system idempotency · double-entry ledger · reconciliation"><div class="scard-hdr"><div class="scard-title">Payment System</div><div class="scard-sub">Vol 2 · Ch.11 · Idempotency · Double-entry ledger · Reconciliation</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a payment processing system that handles money movement correctly even under network failures, retries, and distributed system failures. The core challenge: money must not be double-charged, never lost, and every cent must be accounted for.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Idempotency key** — Every payment request carries a unique idempotency_key (UUID). On retry: server returns same result as original request. Prevents double charge. PSP (Stripe) also honors idempotency keys end-to-end.
+- **Payment state machine** — Pending → Processing → Succeeded / Failed / Cancelled. Transitions are atomic DB updates. Each state is observable for debugging. Never skip states.
+- **Double-entry ledger** — Every payment = debit one account + credit another. Sum of all ledger entries always = 0. Immutable — entries are never updated, only new entries created. Complete audit trail.
+- **PSP integration** — Never process card data yourself — PCI DSS compliance is extremely complex. Use a PSP (Stripe, Adyen, Braintree). They handle card networks, encryption, compliance. You send payment intent, they handle the rest.
+- **Idempotency at PSP level** — PSPs support their own idempotency keys. Even if your system retries, the PSP deduplicates on their end. Two-layer protection: your idempotency_key check + PSP's idempotency_key.
+- **Reconciliation** — Daily batch job compares your ledger against PSP settlement statement. Flag discrepancies. Human review for unmatched records. This is the source of truth check.
+- **Asynchronous webhooks** — PSPs notify you of payment outcomes via webhooks. Don't rely on synchronous API response alone — webhook may carry different final status than the initial response.
+
+> Idempotency key prevents double charges. Double-entry ledger ensures books balance. Daily reconciliation catches any discrepancies. These three together make a correct payment system.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+Payment processing is not a throughput problem — it's a correctness problem. 115 transactions/sec is well within a single PostgreSQL instance's capacity.
+
+The scaling concern is consistency under failure. The canonical failure mode: payment request times out. Did the charge succeed? The idempotency key answers this definitively. This is why idempotency is the first concept to introduce — it makes the system correct under retries, which is what makes the system correct under real network conditions.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Financial integrity framing.
+2. "Payment systems must satisfy two invariants: no double charges, and no missing money. The design flows from these constraints."
+3. "No double charges: every payment request carries an idempotency_key (UUID generated client-side). On retry: server returns same result. PSP honors our idempotency_key. Two-layer protection."
+4. "No missing money: double-entry ledger. Every transaction = debit one account + credit another. Sum of all entries = 0. Immutable — no updates, only new entries. Complete audit trail."
+5. "Payment flow: Payment service → PSP (Stripe) → card network → bank. PSP webhooks notify us of final status. Poll PSP API as fallback (don't rely solely on webhooks)."
+6. "Daily reconciliation: compare internal ledger against PSP settlement statement. Any discrepancy → alert for human review. This is the source of truth check."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+═══════════════ PAYMENT FLOW ═════════════════════════
+
+  User submits payment
+  (idempotency_key = UUID generated by client)
+        │
+  ┌─────▼───────────────────────────────────────────┐
+  │  Payment Service                                 │
+  │                                                 │
+  │  1. Redis SETNX idempotency_key (24h TTL)        │
+  │     → already processed? return cached result   │
+  │                                                 │
+  │  2. Create Payment record (status=PENDING)       │
+  │     in PostgreSQL                               │
+  │                                                 │
+  │  3. Call PSP (Stripe) with idempotency_key      │
+  └─────┬───────────────────────────────────────────┘
+        │
+  ┌─────▼───────────────────────────────────────────┐
+  │  PSP  (Stripe / Adyen)                           │
+  │  Card network (Visa/Mastercard) → Issuing Bank  │
+  │  Returns: success / failure / pending           │
+  └─────┬───────────────────────────────────────────┘
+        │
+  ┌─────▼───────────────────────────────────────────┐
+  │  Payment Service  (result handling)              │
+  │                                                 │
+  │  Atomic DB transaction:                         │
+  │  ┌────────────────────────────────────────────┐ │
+  │  │  UPDATE payments SET status=SUCCEEDED       │ │
+  │  │  INSERT ledger: DEBIT customer $100         │ │
+  │  │  INSERT ledger: CREDIT merchant $97.10      │ │
+  │  │  INSERT ledger: CREDIT Stripe fee $2.90     │ │
+  │  └────────────────────────────────────────────┘ │
+  └─────┬───────────────────────────────────────────┘
+        │
+        ├──► Kafka: payment.succeeded event
+        │         → Notification Service (receipt)
+        │         → Order Service (fulfill)
+        │         → Analytics pipeline
+        │
+        ▼
+  Return result to user
+
+  ═══════════════ RELIABILITY MECHANISMS ══════════════
+
+  ┌──────────────────────────────────────────────────┐
+  │  Network timeout: retry with SAME idempotency_key│
+  │  PSP deduplicates → same result returned         │
+  │                                                  │
+  │  Webhook (PSP → us): Stripe retries 72h          │
+  │  Fallback: poll PSP API every 5 min for PENDING  │
+  │                                                  │
+  │  Double-entry ledger invariant:                  │
+  │  SUM(all ledger entries) = 0 always              │
+  │                                                  │
+  │  Daily reconciliation:                           │
+  │  Internal ledger ↔ PSP settlement CSV            │
+  │  Flag any mismatch → human review                │
+  └──────────────────────────────────────────────────┘
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-google-maps" data-diff="h" data-title="google maps graph routing · segment trees · map tile cdn"><div class="scard-hdr"><div class="scard-title">Google Maps</div><div class="scard-sub">Vol 2 · Ch.3 · Graph routing · Segment trees · Map tile CDN</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a mapping and navigation system like Google Maps. The core problems are: storing and querying a planet-scale road graph (billions of nodes/edges), computing shortest paths in real time (<500ms), serving map tiles efficiently to millions of concurrent users, and providing accurate ETAs that account for real-time traffic.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Road graph representation** — Nodes = intersections. Edges = road segments with weight = travel_time. Partitioned by geography into tiles. Each graph tile ~10MB, loaded on demand. Total planet graph: ~50 TB.
+- **Dijkstra vs A*** — Dijkstra: finds exact shortest path. A* (heuristic): uses straight-line distance to guide search, 10-100× faster for point-to-point routing. Production systems use Contraction Hierarchies (CH) — precomputed shortcuts reduce query time to milliseconds.
+- **Contraction Hierarchies** — Offline preprocessing: compute shortcuts between high-importance nodes (highways). Online query: search only the highway graph first, then expand to local roads. 1000× faster than raw Dijkstra. Used by OSRM, Mapbox, Valhalla.
+- **Map tiles** — World divided into a quad-tree of tiles at zoom levels 0-20. Each tile = PNG or vector tile. Served from CDN. Client requests only visible tiles. Pre-generated and cached — no real-time rendering on request.
+- **ETA calculation** — Base ETA = distance / speed_limit. Adjust for real-time traffic: compare current GPS speeds of anonymous users on each segment vs historical baseline. Traffic heatmap updated every 2 minutes.
+- **S2 geometry library** — Google's S2 maps Earth onto a unit sphere, subdivides using a Hilbert space-filling curve. Nearby locations have similar S2 cell IDs. Used for spatial indexing, tile addressing, geofencing.
+- **Location data pipeline** — Millions of active navigating users send GPS pings every 15s. Kafka ingests the stream. Stream processor aggregates speed per road segment. Traffic layer updated continuously.
+
+> Contraction Hierarchies for fast routing, CDN-cached tiles for rendering, anonymous GPS stream for real-time traffic — these three components define the architecture.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The counterintuitive scaling insight: routing is NOT the bottleneck. 278 routing requests/second is trivial. The bottleneck is tile serving — 1.67M tile requests/second, which the CDN handles. And the data pipeline — 3.3M GPS pings/second into Kafka which requires significant cluster capacity.
+
+The hardest engineering problem is map matching at scale: snapping 3.3M/sec GPS pings to the correct road segment in real time using HMM. This requires holding the full road graph in memory on stream processing nodes.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Three-component framing.
+2. "Google Maps has three distinct engineering challenges: tile serving (rendering), routing (graph algorithms), and real-time traffic (stream processing). Each has completely different requirements."
+3. "Tile serving: world divided into a quad-tree of tiles at zoom levels 0-20. Pre-generated as vector tiles. Served from CDN. 99%+ cache hit rate. Client renders using WebGL."
+4. "Routing: road graph = nodes (intersections) + edges (segments with travel time). Contraction Hierarchies preprocessing reduces cross-country query from seconds to <10ms. A* for local rerouting."
+5. "ETA: base = distance/speed_limit. Adjusted by real-time traffic from GPS stream. 50M navigators send pings every 15s → Kafka → stream processor aggregates speed per segment every 2 minutes."
+6. "Map matching: GPS pings snapped to road segments via Hidden Markov Model. Handles GPS drift in urban canyons."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+MAP TILE SERVING:
+  Client viewport → request visible tile IDs
+  CDN Edge (99% HIT) → vector tile bytes
+  Client WebGL renderer → pixels on screen
+
+  ROUTING:
+  Origin + Destination
+         |
+  Contraction Hierarchies query
+  (precomputed highway shortcuts)
+         |
+  Route: [segment1, segment2, ...]
+         |
+  ETA = Σ(length / blended_speed)
+  blended = 0.7×realtime + 0.3×historical
+
+  TRAFFIC PIPELINE:
+  50M navigators → GPS ping every 15s
+         |
+  Kafka (3.3M pings/sec)
+         |
+  Stream processor
+  Aggregate: avg speed per road segment
+         |
+  Traffic layer (updated every 2 min)
+         |
+  Routing ETA adjustment
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-metrics" data-diff="h" data-title="metrics monitoring &amp; alerting time-series db · pull vs push · downsampling · alerting"><div class="scard-hdr"><div class="scard-title">Metrics Monitoring &amp; Alerting</div><div class="scard-sub">Vol 2 · Ch.5 · Time-series DB · Pull vs push · Downsampling · Alerting</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a metrics monitoring and alerting system like Datadog or Prometheus. The system must ingest millions of metrics per second from thousands of services, store them efficiently for long-term retention, support fast queries for dashboards, and fire alerts within seconds of a threshold being breached.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Pull vs push collection** — Pull (Prometheus model): collector scrapes /metrics endpoints on a schedule. Easier to detect dead services (no scrape = alert). Push (StatsD/DataDog model): services push metrics to collector. Works behind firewalls, better for short-lived jobs. Production systems often support both.
+- **Time-series data model** — Metric = {name, labels, timestamp, value}. Labels enable filtering/grouping: http_requests_total{method='GET', status='200'}. Cardinality explosion: too many unique label combinations → storage and query cost explodes. Cap label cardinality.
+- **Kafka as ingest buffer** — Metrics producers → Kafka → time-series DB. Kafka decouples ingest spikes from storage. Allows multiple consumers (storage, alerting, anomaly detection) from one stream.
+- **Time-series DB (TSDB)** — Specialized for append-only time-indexed data. Columnar storage, aggressive compression (delta-of-delta + XOR encoding). Prometheus TSDB, InfluxDB, VictoriaMetrics. 10-50× more compact than relational DB for time-series.
+- **Downsampling & retention** — Raw data (1s resolution) retained 7 days. Downsampled to 1-min averages retained 30 days. 1-hour averages retained 1 year. Reduces storage 99% for long-term trends.
+- **Alert evaluation** — Alert rules evaluated every 30s against TSDB queries. Alert fires when condition true for N consecutive evaluations (prevents flapping). Alert routed to PagerDuty/Slack/email based on severity and team routing rules.
+- **Query layer** — PromQL or InfluxQL for ad-hoc queries. Pre-computed rollups for dashboard queries. Query caching for repeated dashboard loads. Grafana as visualization layer.
+
+> Pull collection for services, push for batch jobs. Kafka as ingest buffer. TSDB with delta encoding for storage. Downsampling for long-term retention. Alert evaluator with debounce prevents false pages.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+At 100K metrics/sec ingest, a single VictoriaMetrics node handles this with room to spare. The scaling challenges are:
+
+1. Cardinality: 1M unique time series × 100-byte label index = 100 GB RAM for the in-memory index. Cap cardinality aggressively.
+2. Query fanout: a dashboard with 20 panels × 10 queries each = 200 TSDB queries on page load. Pre-compute panel data or rate-limit dashboard refreshes.
+3. Alert evaluation: 10K alert rules × 30s evaluation = 333 rule evaluations/sec. Distribute rule evaluation across multiple alert evaluator nodes.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Three-component framing.
+2. "Metrics system has three distinct concerns: collection, storage, and alerting. They have different reliability requirements."
+3. "Collection: pull-based scraping from service /metrics endpoints every 10s. Push gateway for batch jobs. Kafka as ingest buffer — decouples scrape spikes from TSDB write throughput."
+4. "Storage: time-series DB (Prometheus + VictoriaMetrics for long-term). Raw 1s data for 7 days. Downsample to 1-min for 30 days, 1-hour for 1 year. Delta encoding gives 10:1 compression."
+5. "Alerting: rules evaluated every 30s via TSDB queries. Alert fires after N consecutive positive evaluations — prevents flapping. Severity-based routing to PagerDuty vs Slack. Inhibition rules to prevent alert storms."
+6. "Critical design constraints: cap label cardinality (no user_id labels), pre-compute dashboard rollups, dead-man's switch to monitor the monitoring system."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+COLLECTION:
+  Services → /metrics endpoint
+  Scraper (every 10s) ────────────► Kafka
+  Push Gateway (batch jobs) ───────► Kafka
+                                        |
+  STORAGE:                              ▼
+                               Time-series DB
+  Raw (1s, 7 days)  ◄──────── (VictoriaMetrics)
+  1-min avg (30 days)            compression
+  1-hour avg (1 year)            10:1 ratio
+
+  ALERTING:
+  Alert evaluator (every 30s)
+  PromQL query → threshold check
+  N consecutive fires → alert
+       |
+       ├── P1: PagerDuty (page now)
+       ├── P2: Slack #alerts
+       └── P3: Ticket
+
+  DASHBOARD:
+  Grafana → PromQL → TSDB
+  Pre-computed rollups for fast load
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-adclick" data-diff="h" data-title="ad click aggregation exactly-once · windowed aggregation · lambda vs kappa"><div class="scard-hdr"><div class="scard-title">Ad Click Aggregation</div><div class="scard-sub">Vol 2 · Ch.7 · Exactly-once · Windowed aggregation · Lambda vs Kappa</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a system that counts ad clicks in real time and provides accurate aggregated reports to advertisers. The challenge: clicks must be counted exactly-once (duplicate events from retries must not double-count revenue), aggregations must be fast enough for real-time dashboards, and the system must handle late-arriving events (mobile users who go offline and reconnect).
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Exactly-once counting** — Click events arrive via Kafka. Idempotency key = click_id (UUID). Dedup within Flink using a stateful operator with 24h window. Flink's exactly-once mode (two-phase commit) ensures no duplicates across checkpoints.
+- **Tumbling windows** — Count clicks in fixed non-overlapping 1-minute windows. Window closes at t+60s. Aggregate output: {ad_id, window_start, click_count, spend}. Windows give clean billing epochs.
+- **Watermarks for late data** — Mobile clicks may arrive minutes late (offline device). Watermark = current_event_time - max_lateness (e.g., 2 min). Window doesn't close until watermark passes its end time. Late events after watermark: applied to a corrections batch.
+- **Lambda vs Kappa architecture** — Lambda: batch layer (exact, slow) + speed layer (approximate, fast) + serving layer merges. Kappa: streaming only, replay Kafka for reprocessing. Kappa is simpler and works when Kafka retains data long enough to replay.
+- **ClickHouse for serving** — Aggregated results written to ClickHouse (columnar OLAP). Advertiser queries: 'clicks for ad X in last 7 days by hour' run in milliseconds. MergeTree engine handles append-only aggregates efficiently.
+- **Click fraud detection** — Statistical anomalies: same IP clicking same ad 100×/min, click rate 10× baseline. Real-time fraud score computed in Flink alongside aggregation. Fraudulent clicks filtered before counting.
+- **Reconciliation** — End-of-day batch job reprocesses raw Kafka events with exact dedup. Compares to streaming aggregates. Discrepancies trigger correction records. Billing always uses reconciled batch numbers.
+
+> Exactly-once + watermarks handles the correctness problems. ClickHouse handles the query performance. Reconciliation handles billing accuracy. Kappa architecture keeps it operationally simple.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The dedup state is the surprise scaling bottleneck. 50K unique clicks/sec × 86400 seconds × 24h TTL × 50 bytes/entry = 5 TB of Flink state. This must be RocksDB-backed (spills to disk) rather than in-memory. Checkpoint size and checkpoint interval drive operational cost: 5 TB checkpoint every 30s requires fast storage and network.
+
+The practical solution: reduce TTL. Most duplicates arrive within seconds of the original (retry logic). A 5-minute dedup window catches 99.9% of duplicates with only 15 GB of state. End-of-day reconciliation catches the remaining 0.1% that arrive late.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Correctness-first framing.
+2. "Ad click aggregation has one non-negotiable requirement: every click counted exactly once. Get this wrong and advertisers are overcharged or undercharged. I'll design around that constraint."
+3. "Ingest: clicks published to Kafka with a click_id UUID. Flink consumes with a stateful dedup operator — if click_id seen before (RocksDB state, 24h TTL), skip. Otherwise count."
+4. "Aggregation: tumbling 1-minute windows. Output: {ad_id, window_start, click_count, spend} written to ClickHouse. Real-time dashboard reads from ClickHouse."
+5. "Late events: watermarks allow 2-minute grace period for late arrivals. Events later than 2 minutes → corrections queue → end-of-day reconciliation batch."
+6. "Billing: always uses end-of-day batch reconciliation numbers, not real-time stream. Real-time is for monitoring. Batch is for money."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+Click event (with click_id UUID)
+         |
+  Kafka (30-day retention)
+         |
+  Flink Job
+  ┌─────────────────────────────┐
+  │ Dedup: check click_id       │
+  │   (RocksDB state, 24h TTL)  │
+  │ Window: 1-min tumbling      │
+  │ Watermark: 2-min lateness   │
+  │ Output: {ad_id, ts, count}  │
+  └──────────────┬──────────────┘
+                 |
+  ClickHouse (aggregated, fast queries)
+  ad_id | window_start | clicks | spend
+  ───────────────────────────────────
+  adX   | 14:00:00     | 1,847  | $18.47
+         |
+  Advertiser dashboard (real-time)
+
+  RECONCILIATION (nightly):
+  Kafka replay → exact count → compare
+  → correction records → billing
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-stock-exchange" data-diff="h" data-title="stock exchange order book · matching engine · low latency · cqrs"><div class="scard-hdr"><div class="scard-title">Stock Exchange</div><div class="scard-sub">Vol 2 · Ch.8 · Order book · Matching engine · Low latency · CQRS</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a stock exchange order matching system. The core requirements are extreme: sub-millisecond order matching latency, strict price-time priority (FIFO within same price), guaranteed no duplicate order processing, and an immutable audit trail of every order and trade. This is one of the most latency-sensitive systems in existence.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Order book** — Per-symbol sorted data structure: bid side (descending price), ask side (ascending price). Implemented as a sorted map (price → queue of orders). Best bid = highest buy order. Best ask = lowest sell order. Match when best bid >= best ask.
+- **Matching engine (single-threaded)** — The matching engine is intentionally single-threaded to avoid locking. All orders for a symbol processed sequentially. LMAX Disruptor pattern: lock-free ring buffer for inter-thread communication. Achieves millions of orders/sec on commodity hardware.
+- **Sequencer** — Single point of truth for order sequencing. Every order receives a monotonically increasing sequence ID before reaching the matching engine. Guarantees deterministic replay — given same sequence of inputs, always produces same output. Critical for disaster recovery.
+- **Price-time priority (FIFO)** — Within the same price level, orders are matched in arrival order (time priority). Order with lower sequence ID matched first. This is the regulatory requirement for most exchanges.
+- **Event sourcing** — Every order, trade, and cancellation stored as an immutable event. Current state = replay of all events. Enables audit trail, replay for bug fixes, and disaster recovery. Events stored in a write-ahead log.
+- **Market data publisher** — After each match, publish trade data and order book changes to subscribers. Two feeds: full depth (all price levels) and top-of-book (best bid/ask only). Published via multicast UDP for lowest latency.
+- **FIX protocol** — Industry standard Financial Information eXchange protocol for order entry and market data. Brokers connect via FIX gateways. Binary FIX (FAST/SBE) for low latency; text FIX for compatibility.
+
+> Single-threaded matching engine eliminates locking. Sequencer guarantees deterministic ordering. Event sourcing enables replay and audit. These three together define exchange architecture.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The scaling axis for an exchange is latency, not throughput. 500K orders/sec is achievable on a single server. Sub-100 microsecond matching requires bypassing the Linux kernel's network stack entirely.
+
+Kernel bypass networking (DPDK): process network packets directly in userspace, avoiding 50-100 microsecond kernel overhead. CPU pinning: matching engine thread pinned to a dedicated CPU core, never preempted. NUMA-aware allocation: order book data allocated on same NUMA node as CPU. These three techniques together achieve 5-50 microsecond matching latency.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Latency-first framing.
+2. "Stock exchange is the most latency-sensitive system you'll design. The engineering challenge is not throughput — 500K orders/sec is trivial. The challenge is sub-100 microsecond matching latency."
+3. "Core component: matching engine. Single-threaded (no locking), in-memory order book (per symbol), LMAX Disruptor ring buffer for lock-free inter-thread communication."
+4. "Order flow: FIX gateway → sequencer (assigns monotonic sequence ID) → matching engine (price-time priority matching) → WAL (async durability) → market data publisher."
+5. "Sequencer is the key correctness guarantee: every order gets a unique sequence ID before matching. Given the same sequence of events, the matching engine always produces the same output. Enables deterministic replay for disaster recovery."
+6. "Fault tolerance: WAL + periodic order book snapshots. On crash: restore from latest snapshot + replay WAL tail. Recovery in < 1 minute."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+Broker (FIX protocol)
+         |
+  FIX Gateway (TCP)
+         |
+  Sequencer ─── assigns monotonic seq_id
+         |
+  Matching Engine (single-threaded)
+  ┌────────────────────────────────┐
+  │  Order Book (per symbol)       │
+  │  BID:  105.00  [100, 200]      │
+  │        104.50  [500]           │
+  │  ASK:  105.50  [150]           │
+  │        106.00  [300, 100]      │
+  │                                │
+  │  Match: bid >= ask → TRADE     │
+  └──────────────┬─────────────────┘
+                 |
+  ┌──────────────┼──────────────────┐
+  |              |                  |
+  WAL         Trade             Market Data
+  (async)     Execution         Publisher
+  NVMe SSD    (position update)  (UDP multicast)
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-s3-storage" data-diff="h" data-title="s3-like object storage erasure coding · placement · metadata · multipart"><div class="scard-hdr"><div class="scard-title">S3-like Object Storage</div><div class="scard-sub">Vol 2 · Ch.10 · Erasure coding · Placement · Metadata · Multipart</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design an object storage system like Amazon S3. The system must store exabytes of data durably (11 nines, 99.999999999% durability), serve millions of concurrent requests, and do so cost-effectively. The key engineering challenge is balancing durability, availability, and storage efficiency across commodity hardware that fails regularly.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Erasure coding vs replication** — 3-way replication: 3× storage overhead, simple recovery. Erasure coding (e.g., Reed-Solomon 6+3): 1.5× overhead, can lose any 3 of 9 shards and reconstruct. S3 uses erasure coding for cost efficiency at scale. Trade-off: erasure coding recovery requires reading 6 shards; replication reads 1.
+- **Data placement with CRUSH algorithm** — CRUSH (Controlled Replication Under Scalable Hashing): deterministic placement of shards across nodes, racks, and availability zones based on a placement map. Given object_id + placement_map → compute exactly which nodes hold each shard. No central placement DB needed.
+- **Metadata service** — Maps object_id → {bucket, key, size, etag, shards[{node_id, shard_id}]}. Separate from data nodes. Strongly consistent (Raft-based). The metadata service is the most critical component — losing it means losing access to all objects.
+- **Multipart upload** — Large objects split into 5MB-5GB parts. Each part uploaded independently. Server assembles after all parts committed. Enables parallelism (10 parts × 10 Gbps = 100 Gbps effective upload) and resumption after failure.
+- **Data node design** — Each data node is a commodity server with many HDDs (S3's design: 2000+ HDDs per rack). Objects stored as files on local disk with a local index (key → file offset). Data nodes report heartbeat to metadata service.
+- **Replication across AZs** — Shards distributed across at least 3 availability zones. Single AZ failure cannot cause data loss. Erasure coding stripes across AZ boundaries.
+- **Versioning** — Each PUT creates a new version (version_id). Metadata stores all versions. DELETE creates a delete marker (soft delete). Permanent delete removes version. Lifecycle policies auto-expire old versions.
+
+> Erasure coding for storage efficiency. CRUSH for placement without central DB. Metadata service for the index. Multipart for large objects. These four together define object storage at scale.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+The metadata service is the most critical scaling bottleneck. 1B objects = 1 TB of metadata. This must be consistent, durable, and serve millions of requests/second for lookups. Raft consensus at 1M req/sec requires careful batching and leader optimization.
+
+The data plane bottleneck is erasure coding CPU: reconstructing a shard requires XOR operations over 6 × shard_size bytes of data. Modern CPUs with SIMD/AVX-512 handle this efficiently. Hardware erasure coding acceleration (ISA-L library) achieves 20+ GB/s reconstruction throughput per core.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Durability-first framing.
+2. "S3-like object storage is fundamentally a durability problem. How do you store data on commodity hardware (which fails daily at scale) and achieve 11 nines of durability? Erasure coding plus geographic distribution."
+3. "PUT flow: client uploads to API gateway → metadata service computes placement via CRUSH algorithm → object sharded and erasure-coded into 9 pieces (RS 6+3) → shards written to 9 data nodes across 3 AZs."
+4. "GET flow: metadata lookup → identify which 6+ shards to read → parallel reads from data nodes → Reed-Solomon reconstruction → return object."
+5. "Metadata service: Raft cluster, strongly consistent. Maps object_id to shard locations. This is the brain — losing it means losing access to everything."
+6. "Large objects: multipart upload. Client splits into 5MB parts, uploads in parallel, server assembles."
+7. "Key durability layer: continuous integrity checking — every shard checksummed weekly, silent corruption auto-repaired."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+PUT object:
+  Client → API Gateway
+    → Metadata Service (CRUSH placement)
+    → Shard into 9 pieces (RS 6+3)
+    AZ-1: shards 1,2,3
+    AZ-2: shards 4,5,6
+    AZ-3: shards 7,8,9
+
+  GET object:
+  Client → API Gateway
+    → Metadata lookup (object→shards)
+    → Read any 6 shards in parallel
+    → Reed-Solomon reconstruct
+    → Return to client
+
+  DATA NODE layout:
+  Node = commodity server (JBOD)
+  Objects stored as files on local ext4
+  Local index: shard_id → file + offset
+  Heartbeat to metadata service every 1s
+
+  DURABILITY LAYERS:
+  RS(6,3) → survive 3 node failures
+  3 AZs  → survive 1 AZ failure
+  Checksums → detect silent bit rot
+  Versioning → survive accidental delete
+```
+
+</details>
+
+
+</div></div>
+<div class="scard" id="card-digital-wallet" data-diff="h" data-title="digital wallet double-entry bookkeeping · idempotency · saga pattern · reconciliation · immutable ledger"><div class="scard-hdr"><div class="scard-title">Digital Wallet</div><div class="scard-sub">Vol 2 · Ch.12 · Double-entry bookkeeping · idempotency · Saga pattern · reconciliation · immutable ledger</div></div><div class="gh-fallback">
+
+<details open>
+<summary><strong>Problem</strong></summary>
+
+Design a digital wallet (like Venmo, PayPal, or WeChat Pay) supporting fund transfers with consistency, auditability, and retry safety.
+
+Hard parts: (1) Atomicity — debit and credit must both succeed or both fail; no money created or destroyed. (2) Double-charge prevention — network failures cause retries; must not debit sender twice. (3) Cross-shard transactions — sender and recipient may be in different DB shards.
+
+</details>
+
+
+<details>
+<summary><strong>Key points</strong></summary>
+
+- **Double-entry bookkeeping** — Every transaction creates two immutable ledger entries: DEBIT from source account, CREDIT to destination. Sum of all credits = sum of all debits = 0 always. Ledger is append-only: never UPDATE or DELETE entries. Balance = SUM(credit_entries) - SUM(debit_entries) per account. Any corruption immediately detectable.
+- **Idempotency keys** — Client generates UUID transfer_request_id. Server checks idempotency table before executing. If found: return cached result (same transfer_result). If not found: execute transfer, cache result with TTL=24h. Prevents double-debit when client retries on network timeout. Unique constraint on (idempotency_key) in DB.
+- **Saga for cross-shard transfers** — Sender and recipient may be in different DB shards. Saga: (1) lock source account (SELECT FOR UPDATE), verify balance, append DEBIT entry. (2) lock destination account, append CREDIT entry. Compensating transaction: if step 2 fails after step 1: append CREDIT entry back to source (reversal). Log all Saga steps to saga_executions table.
+- **Balance derivation vs cached balance** — Balance derived from ledger: SELECT SUM(amount * direction) WHERE account_id = X. Correct but O(N) scans for large transaction history. Optimization: store cached_balance updated in same transaction as ledger entry. Cached_balance is a denormalization for performance. On discrepancy: recompute from ledger (ledger is source of truth).
+- **Reconciliation** — Hourly batch job: for each account, compare SUM(ledger) with cached_balance. If mismatch: alert and auto-investigate. External reconciliation: compare with bank settlement files. Regulatory audit: immutable ledger provides complete audit trail. Never purge ledger entries.
+
+> Financial correctness requires the highest guarantees. Double-entry bookkeeping makes corruption detectable. Idempotency prevents double-charge. Saga handles cross-shard transactions without 2PC. Immutable ledger provides complete audit trail. The ledger is the source of truth; cached balance is a performance optimization only.
+
+</details>
+
+
+<details>
+<summary><strong>Scale</strong></summary>
+
+Digital wallet correctness cannot be retrofitted. The double-entry ledger, idempotency key, and Saga pattern must be baked in from day one.
+
+The scaling challenge is not throughput — even Venmo processes far fewer than 1000 transactions per second. The real challenge is the ledger query: computing a user's balance means summing potentially millions of ledger entries. Solution: periodic balance snapshots (monthly checkpoint) + sum only entries since the last snapshot. This bounds the query to at most 30 days of entries regardless of account age.
+
+Fraud at scale: real-time fraud scoring via a parallel stream (Flink) on the transaction Kafka topic. ML model scores each transaction in <50ms. Suspicious transactions flagged for review before settlement.
+
+</details>
+
+
+<details>
+<summary><strong>Script</strong></summary>
+
+1. Correctness-first framing.
+2. "Digital wallet has one non-negotiable invariant: no money is created or destroyed. I'll design around that constraint using double-entry accounting."
+3. "Every transfer: debit sender + credit recipient in one atomic DB transaction. Balance = SELECT SUM(amount) FROM ledger WHERE user_id=X — always computed, never stored as a field."
+4. "Idempotency: every transfer request carries a UUID. Redis SETNX idempotency_key before the DB transaction. Duplicate request? Return cached result. No double-debit."
+5. "Saga for external transfers: (1) debit internal wallet, (2) initiate ACH/bank transfer, (3) confirm. Compensation on failure: credit the wallet back."
+6. "Daily reconciliation: sum all ledger entries, verify net = 0. Any discrepancy → alert for human review."
+
+</details>
+
+
+<details>
+<summary><strong>Whiteboard</strong></summary>
+
+```
+Transfer: User A → User B ($50)
+         |
+  Payment Service
+  ┌─────────────────────────────────┐
+  │ 1. Redis SETNX idem_key (24h)  │
+  │    → duplicate? return cached  │
+  │ 2. BEGIN TRANSACTION            │
+  │    INSERT ledger: DEBIT A $50   │
+  │    INSERT ledger: CREDIT B $50  │
+  │    COMMIT (atomic)              │
+  └─────────────────────────────────┘
+         |
+  Kafka: transfer.completed
+         |
+  ┌──────┴──────┐
+  Notification   Fraud Score
+  (async)        (Flink stream)
+
+  BALANCE QUERY:
+  SELECT SUM(amount) FROM ledger
+  WHERE user_id=A
+  → never store balance as column
+  → snapshot monthly for performance
+```
+
+</details>
+
+
+</div></div>
+</div>
 
 <footer class="site-footer">
   <div class="site-footer-left">System Design Cheat Sheet &nbsp;<span>v10</span></div>
