@@ -274,20 +274,46 @@ def md_blocks(text: str) -> str:
     return "\n".join(out)
 
 
-def split_intro(intro: str) -> tuple[str, str]:
-    """Lead paragraphs before first ##; blocks exclude Severity legend (page has .legend)."""
+def split_intro(intro: str) -> str:
+    """Opening paragraphs only — preamble ## sections stay in the .md source."""
     intro = intro.strip()
     m = re.search(r"\n## ", intro)
-    lead = intro[: m.start()].strip() if m else intro
-    blocks = intro[m.start() :].strip() if m else ""
-    if "## Severity legend" in blocks:
-        blocks = re.split(r"\n## Severity legend\b", blocks, maxsplit=1)[0].strip()
-    return lead, blocks
+    return intro[: m.start()].strip() if m else intro
 
 
-def md_lead(text: str) -> str:
-    paras = [p.strip() for p in re.split(r"\n\n+", text.strip()) if p.strip()]
-    return "".join(f"<p>{md_inline(p.replace(chr(10), ' '))}</p>" for p in paras)
+def parse_page_title(md: str) -> tuple[str, str]:
+    m = re.match(r"#\s+(.+?)(?:\s*—\s*(.+))?\s*\n", md)
+    if not m:
+        return "Interview quick-fire", ""
+    return m.group(1).strip(), (m.group(2) or "").strip()
+
+
+LINK_LABELS = {
+    "system_design_cheatsheet_v14.html": "Full cheatsheet",
+    "github/v15/index.md": "40 system cards",
+    "interview-quick-fire-diagrams.html": "Diagrams",
+}
+
+
+def render_hero(lead_md: str) -> str:
+    paras = [p.strip() for p in re.split(r"\n\n+", lead_md.strip()) if p.strip()]
+    parts: list[str] = []
+    for para in paras:
+        links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", para)
+        if len(links) >= 2:
+            pills = []
+            for label, href in links:
+                if href == "interview-quick-fire.html":
+                    continue
+                text = LINK_LABELS.get(href, label)
+                pills.append(
+                    f'<a href="{html.escape(href, quote=True)}">{md_inline(text)}</a>'
+                )
+            if pills:
+                parts.append('<div class="hero-links">' + "".join(pills) + "</div>")
+            continue
+        parts.append(f"<p>{md_inline(para.replace(chr(10), ' '))}</p>")
+    return "".join(parts)
 
 
 def enrich_markdown(md: str, sections: list[dict]) -> str:
@@ -371,7 +397,7 @@ def enrich_markdown(md: str, sections: list[dict]) -> str:
     return md
 
 
-def build_html(intro: str, sections: list[dict]) -> str:
+def build_html(intro: str, sections: list[dict], md: str = "") -> str:
     data = []
     for sec in sections:
         if sec["title"] == "Navigation":
@@ -397,14 +423,12 @@ def build_html(intro: str, sections: list[dict]) -> str:
         )
 
     payload = json.dumps(data, ensure_ascii=False)
-    lead_md, intro_blocks_md = split_intro(intro)
-    lead_html = md_lead(lead_md) if lead_md else ""
-    intro_blocks_html = md_blocks(intro_blocks_md) if intro_blocks_md else ""
-    intro_section = (
-        f'<div class="intro">{intro_blocks_html}</div>' if intro_blocks_html else ""
-    )
-    lead_fallback = (
-        "Problem → staff-level answer. Filter by severity — drill critical failure modes first."
+    page_title, page_sub = parse_page_title(md)
+    if page_sub:
+        page_sub = page_sub[0].upper() + page_sub[1:]
+    hero_html = render_hero(split_intro(intro))
+    hero_fallback = (
+        "<p>Problem → staff-level answer. Filter by severity — drill critical failure modes first.</p>"
     )
 
     return f"""<!DOCTYPE html>
@@ -452,15 +476,11 @@ a{{color:var(--prep-bdr)}}
 .sidebar{{width:280px;background:var(--card);border-right:1px solid rgba(0,0,0,.08);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}}
 .main{{flex:1;max-width:920px;padding:28px 32px 80px}}
 h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
-.lead p{{color:var(--muted);margin-bottom:10px;font-size:.95rem}}
-.intro{{margin-bottom:8px}}
-.intro h2{{font-size:1.1rem;margin:22px 0 10px;letter-spacing:-.01em}}
-.intro h3{{font-size:1rem;margin:16px 0 8px}}
-.intro table{{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:.86rem}}
-.intro th,.intro td{{border:1px solid rgba(0,0,0,.1);padding:8px 10px;text-align:left;vertical-align:top}}
-.intro th{{background:rgba(0,0,0,.04);font-weight:600}}
-.intro ul{{margin:8px 0 16px 1.2rem;font-size:.9rem}}
-.intro p{{margin:8px 0 12px;font-size:.9rem;line-height:1.6}}
+.hero-sub{{color:var(--muted);font-size:1rem;margin:-2px 0 14px}}
+.lead p{{color:var(--muted);margin-bottom:12px;font-size:.95rem;line-height:1.6}}
+.hero-links{{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}}
+.hero-links a{{font-size:.82rem;padding:5px 12px;border-radius:100px;border:1px solid rgba(0,0,0,.1);background:var(--card);text-decoration:none;color:var(--text);font-weight:500}}
+.hero-links a:hover{{border-color:var(--prep-bdr);color:var(--prep-bdr)}}
 .legend{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:20px 0 28px}}
 .leg{{padding:10px 12px;border-radius:var(--r);border-left:4px solid;font-size:.8rem;font-weight:600}}
 .leg small{{display:block;font-weight:400;color:var(--muted);margin-top:2px;font-size:.72rem}}
@@ -536,9 +556,9 @@ code{{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding
     </div>
   </aside>
   <main class="main">
-    <h1>Interview quick-fire</h1>
-    <div class="lead">{lead_html or f"<p>{md_inline(lead_fallback)}</p>"}</div>
-    {intro_section}
+    <h1>{html.escape(page_title)}</h1>
+    {f'<p class="hero-sub">{md_inline(page_sub)}</p>' if page_sub else ''}
+    <div class="lead">{hero_html or hero_fallback}</div>
     <div class="legend">
       <div class="leg critical">🔴 Critical<small>Outage / cascade</small></div>
       <div class="leg high">🟠 High<small>Resilience stress</small></div>
@@ -661,7 +681,7 @@ def main():
     intro, sections = parse_sections(md)
     md = enrich_markdown(md, sections)
     MD_PATH.write_text(md, encoding="utf-8")
-    HTML_PATH.write_text(build_html(intro, sections), encoding="utf-8")
+    HTML_PATH.write_text(build_html(intro, sections, md), encoding="utf-8")
     n_patterns = sum(len(s["patterns"]) for s in sections)
     print(f"Updated {MD_PATH.name} with severity badges & callouts")
     print(f"Wrote {HTML_PATH.name} ({n_patterns} patterns)")
