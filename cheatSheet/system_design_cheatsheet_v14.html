@@ -444,18 +444,18 @@ html:not(.js-enabled) .js-only{display:none!important}
     <input id="sb-srch" placeholder="Search systems…" oninput="sbSearch(this.value)" autocomplete="off">
 
     <div class="sb-section">Filter</div>
-    <button class="sb-btn on" onclick="filt('all',this)" id="fb-all">All 40</button>
-    <button class="sb-btn easy" onclick="filt('e',this)">Easy ×4</button>
-    <button class="sb-btn med" onclick="filt('m',this)">Medium ×18</button>
-    <button class="sb-btn hard" onclick="filt('h',this)">Hard ×18</button>
+    <button class="sb-btn sb-filt on" onclick="filt('all',this)" id="fb-all">All 40</button>
+    <button class="sb-btn sb-filt easy" onclick="filt('e',this)">Easy ×4</button>
+    <button class="sb-btn sb-filt med" onclick="filt('m',this)">Medium ×18</button>
+    <button class="sb-btn sb-filt hard" onclick="filt('h',this)">Hard ×18</button>
 
     <div class="sb-section">Jump to</div>
-    <a class="sb-nav" onclick="scrollToEl(document.querySelector('.fw'),event)">📐 Framework</a>
-    <a class="sb-nav" onclick="scrollToEl(document.querySelector('.fw.db-section'),event)">🗄 DB chooser</a>
-    <a class="sb-nav" onclick="scrollToEl(document.getElementById('ref-cap'),event)">⚖️ CAP theorem</a>
-    <a class="sb-nav" onclick="scrollToEl(document.getElementById('ref-proto'),event)">📡 Protocols</a>
-    <a class="sb-nav" onclick="scrollToEl(document.getElementById('ref-cloud'),event)">☁️ Cloud</a>
-    <a class="sb-nav" onclick="scrollToEl(document.getElementById('ref-qf'),event)">⚡ Quick-fire</a>
+    <a class="sb-nav" href="#ref-framework" onclick="scrollToEl(document.getElementById('ref-framework'),event)">📐 Framework</a>
+    <a class="sb-nav" href="#ref-db" onclick="scrollToEl(document.getElementById('ref-db'),event)">🗄 DB chooser</a>
+    <a class="sb-nav" href="#ref-cap" onclick="scrollToEl(document.getElementById('ref-cap'),event)">⚖️ CAP theorem</a>
+    <a class="sb-nav" href="#ref-proto" onclick="scrollToEl(document.getElementById('ref-proto'),event)">📡 Protocols</a>
+    <a class="sb-nav" href="#ref-cloud" onclick="scrollToEl(document.getElementById('ref-cloud'),event)">☁️ Cloud</a>
+    <a class="sb-nav" href="#ref-qf" onclick="scrollToEl(document.getElementById('ref-qf'),event)">⚡ Quick-fire</a>
 
     <div id="sb-sys-list">
     <div class="sb-section">Easy</div>
@@ -533,7 +533,7 @@ html:not(.js-enabled) .js-only{display:none!important}
   <span class="kbd-hint" aria-hidden="true">/ search · j/k nav · 1–5 tabs · Esc</span>
 </div>
 
-<div class="fw">
+<div class="fw" id="ref-framework">
   <div class="fwt">Delivery framework — run this every interview</div>
   <div class="fwg">
     <div class="fws"><div class="fwn">01 · 3–5 min</div><div class="fwtt">Requirements</div><div class="fwd">3–4 core functional. NFRs: scale, latency, consistency. Draw the out-of-scope line explicitly.</div></div>
@@ -587,7 +587,7 @@ html:not(.js-enabled) .js-only{display:none!important}
 
 
 <!-- ═══════════ DATABASE CHOOSER SECTION ═══════════ -->
-<div class="fw db-section">
+<div class="fw db-section" id="ref-db">
   <div class="db-section-title">Database selection cheat sheet</div>
   <div class="db-section-sub">Six databases cover 90% of interview scenarios. Know when to reach for each one — and how to justify it out loud.</div>
 
@@ -885,11 +885,11 @@ alone is acceptable here."</div>
 </div>
 
 <!-- ═══════════ QUICK REFERENCE SECTION ═══════════ -->
-<div class="fw db-section" id="ref-cap">
+<div class="fw db-section" id="ref-quickref">
   <div class="db-section-title">Quick reference</div>
   <div class="db-section-sub">CAP, protocols, and common problems — pull these up during deep dives and follow-up rounds.</div>
 
-  <div class="db-fw-hdr" onclick="toggleDb(this)">
+  <div class="db-fw-hdr" id="ref-cap" onclick="toggleDb(this)">
     <span class="db-fw-lbl">⚖️ CAP theorem — what to say when consistency comes up</span>
     <span class="db-fw-arrow">▶</span>
   </div>
@@ -11052,10 +11052,21 @@ function toggleSidebar(){
   ov.classList.toggle('open');
   tog.textContent=sb.classList.contains('open')?'✕':'☰';
 }
+function openDbPanel(hdr){
+  if(!hdr)return;
+  const body=hdr.nextElementSibling;
+  if(body&&body.classList.contains('db-fw-body')&&!body.classList.contains('open')){
+    body.classList.add('open');
+    const arrow=hdr.querySelector('.db-fw-arrow');
+    if(arrow) arrow.classList.add('open');
+  }
+}
 function scrollToEl(el,e){
   if(e)e.preventDefault();
   if(!el)return;
-  scrollMainTo(el,8);
+  if(el.classList.contains('db-fw-hdr')) openDbPanel(el);
+  else if(el.id==='ref-db') openDbPanel(el.querySelector('.db-fw-hdr'));
+  requestAnimationFrame(()=>scrollMainTo(el,8));
   if(window.innerWidth<=768)toggleSidebar();
 }
 function toggleTheme(){
@@ -11092,15 +11103,32 @@ function sw(btn,id,tab,idx){
   }
 }
 let af='all',as='';
-function filt(d,btn){
-  af=d;
-  // sync sidebar sb-btn buttons
-  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
+function syncFiltButtons(d,btn){
+  document.querySelectorAll('.sb-btn.sb-filt').forEach(b=>b.classList.remove('on'));
+  if(btn&&btn.classList.contains('sb-filt')){btn.classList.add('on');return;}
   const label=d==='all'?'All':d==='e'?'Easy':d==='m'?'Medium':'Hard';
-  document.querySelectorAll('.sb-btn').forEach(b=>{
+  document.querySelectorAll('.sb-btn.sb-filt').forEach(b=>{
     if(b.textContent.trim().startsWith(label)) b.classList.add('on');
   });
+}
+function scrollToFiltTarget(){
+  const main=getMain();
+  if(!main)return;
+  const secMap={all:'se',e:'se',m:'sm',h:'sh'};
+  const hdr=document.getElementById(secMap[af]||'se');
+  let target=hdr&&hdr.style.display!=='none'?hdr:null;
+  if(!target||af!=='all'){
+    const card=main.querySelector('.card:not(.hidden)');
+    if(card) target=card;
+  }
+  if(target) requestAnimationFrame(()=>scrollMainTo(target,8));
+}
+function filt(d,btn){
+  af=d;
+  syncFiltButtons(d,btn);
   apply();
+  scrollToFiltTarget();
+  if(window.innerWidth<=768)toggleSidebar();
 }
 function search(v){
   as=v.toLowerCase();
