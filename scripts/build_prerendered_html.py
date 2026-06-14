@@ -348,6 +348,39 @@ def render_card_html(s: dict) -> str:
 </div>"""
 
 
+DIFF_SB_CLASS = {"e": "sb-e", "m": "sb-m", "h": "sb-h"}
+DIFF_SECTION = {"e": "Easy", "m": "Medium", "h": "Hard"}
+
+
+def render_sidebar_systems(systems: list[dict]) -> str:
+    """Match card grid order: C array sequence within each difficulty."""
+    lines: list[str] = []
+    for diff in ("e", "m", "h"):
+        group = [s for s in systems if s["diff"] == diff]
+        if not group:
+            continue
+        lines.append(f'    <div class="sb-section">{DIFF_SECTION[diff]}</div>')
+        cls = DIFF_SB_CLASS[diff]
+        for s in group:
+            idx = s["idx"]
+            title = esc(s["title"])
+            lines.append(
+                f'    <a class="sb-sys {cls}" data-diff="{diff}" '
+                f'data-idx="{idx}" onclick="navTo({idx},event)">{title}</a>'
+            )
+    return "\n".join(lines)
+
+
+def patch_sidebar(text: str, systems: list[dict]) -> str:
+    inner = render_sidebar_systems(systems)
+    return re.sub(
+        r'(<div id="sb-sys-list">)\s*[\s\S]*?(\s*</div>\s*\n\s*<div class="sb-section">Theme)',
+        rf"\1\n{inner}\n\2",
+        text,
+        count=1,
+    )
+
+
 GH_PAGES_CSS = """
 /* GitHub / no-JS: details panels visible */
 .gh-fallback details.gh-panel{margin:6px 14px;border:1px solid var(--bdr-ter);border-radius:var(--r);padding:8px 10px}
@@ -416,11 +449,13 @@ def add_gh_pages_support(text: str, *, clear_c_array: bool) -> str:
 def patch_v14_for_pages(text: str, systems: list[dict]) -> str:
     """Inject pre-rendered cards for GitHub Pages deploy; keep C array in source for editors."""
     text = inject_prerendered_cards(text, systems)
+    text = patch_sidebar(text, systems)
     return add_gh_pages_support(text, clear_c_array=False)
 
 
 def patch_v15_html(text: str, systems: list[dict]) -> str:
     text = inject_prerendered_cards(text, systems)
+    text = patch_sidebar(text, systems)
     text = add_gh_pages_support(text, clear_c_array=True)
     text = text.replace(
         "System Design Cheat Sheet v15 — Eddy Hung 2026",
