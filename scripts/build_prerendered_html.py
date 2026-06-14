@@ -340,11 +340,11 @@ def render_card_html(s: dict) -> str:
 {see}{pills}{flow}
 <div class="narr"><div class="nlbl">Data flow</div><div class="ntxt">{na}</div></div>
 <div class="trow">{tags}</div>
-<div class="gh-fallback">{gh_sections}</div>
 <div class="js-tabs-wrap js-only">
 <div class="tabs" role="tablist">{tabs}</div>
 {panels}
 </div>
+<div class="gh-fallback">{gh_sections}</div>
 </div>"""
 
 
