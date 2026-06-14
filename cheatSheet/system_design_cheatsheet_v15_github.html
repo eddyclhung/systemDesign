@@ -98,6 +98,7 @@ body{font-family:var(--font);color:var(--txt-pri);background:var(--bg-ter);-webk
 .tb-btn{font-size:11px;font-weight:500;padding:4px 10px;border-radius:100px;border:.5px solid var(--bdr-sec);background:transparent;color:var(--txt-sec);cursor:pointer;white-space:nowrap}
 .tb-btn:hover,.tb-btn.on{background:var(--bg-info);color:var(--txt-info);border-color:var(--bdr-info)}
 .card-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 14px;border-bottom:.5px solid var(--bdr-ter);background:var(--bg-sec);font-size:11px}
+body.system-list .card-nav{display:none!important}
 .card-nav-btns{display:flex;gap:4px;flex-wrap:wrap}
 .cn-btn{padding:3px 8px;border-radius:5px;border:.5px solid var(--bdr-sec);background:var(--bg-pri);color:var(--txt-sec);cursor:pointer;font-size:11px}
 .cn-btn:hover{color:var(--txt-pri);border-color:var(--bdr-info)}
@@ -141,6 +142,7 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
 .sec-hdr::after{content:'';flex:1;height:.5px;background:var(--bdr-ter)}
 /* grid */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,480px),1fr));gap:0;border-top:.5px solid var(--bdr-ter);border-left:.5px solid var(--bdr-ter)}
+body.system-list .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,calc(480px * var(--content-zoom))),1fr))!important}
 @media(max-width:640px){.grid{grid-template-columns:1fr}}
 @media(min-width:641px) and (max-width:1199px){.grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:1200px) and (max-width:1799px){.grid{grid-template-columns:repeat(2,1fr)}}
@@ -149,6 +151,13 @@ body.interview-mode .tab[data-tab="f"],body.interview-mode .tab[data-tab="e"],bo
 .card{background:var(--bg-pri);border-right:.5px solid var(--bdr-ter);border-bottom:.5px solid var(--bdr-ter);display:flex;flex-direction:column;transition:outline .1s}
 .card-flash{outline:2px solid var(--bdr-info);outline-offset:-2px}
 .card.hidden{display:none!important}
+body.system-detail .main > .fw,
+body.system-detail .sec-hdr,
+body.jump-detail .sec-hdr,
+body.jump-detail .grid,
+body.jump-detail .card{display:none!important}
+body.system-list .main > .fw{display:none!important}
+.jump-hidden{display:none!important}
 .chdr{padding:12px 14px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border-bottom:.5px solid var(--bdr-ter)}
 .ctitle{font-size:14px;font-weight:500}
 .csub{font-size:11px;color:var(--txt-sec);margin-top:2px}
@@ -8362,7 +8371,7 @@ function clearSearchInputs(){
 function clearSystemDetail(){
   selectedIdx=null;
   selectedJumpEl=null;
-  document.body.classList.remove('system-detail','jump-detail');
+  document.body.classList.remove('system-detail','jump-detail','system-list');
   document.querySelectorAll('.jump-hidden').forEach(el=>el.classList.remove('jump-hidden'));
   document.querySelectorAll('.sb-sys').forEach(a=>a.classList.remove('active'));
 }
@@ -8394,14 +8403,18 @@ function navTo(idx, e, tab){
   selectedIdx=idx;
   selectedJumpEl=null;
   document.body.classList.add('system-detail');
-  document.body.classList.remove('jump-detail');
+  document.body.classList.remove('jump-detail','system-list');
   apply();
   if(tab){
     const btn=card.querySelector('.tab[data-tab="'+tab+'"]');
     if(btn) sw(btn,'c'+idx,tab,idx);
   }
   setTimeout(()=>{
-    card.scrollIntoView({behavior:'smooth', block:'start'});
+    const main=document.querySelector('.main');
+    const topbar=document.querySelector('.topbar');
+    const topOffset=topbar?topbar.offsetHeight:0;
+    if(main) main.scrollTo({top:Math.max(card.offsetTop-topOffset,0),behavior:'smooth'});
+    else card.scrollIntoView({behavior:'smooth', block:'start'});
     card.classList.add('card-flash');
     setTimeout(()=>card.classList.remove('card-flash'), 800);
   }, 50);
@@ -8551,13 +8564,17 @@ function sw(btn,id,tab,idx){
 }
 function filt(d,btn){
   clearSystemDetail();
+  document.body.classList.add('system-list');
   af=d;
   // sync sidebar sb-btn buttons
   syncFilterButtons();
   apply();
+  const main=document.querySelector('.main');
+  if(main) main.scrollTo({top:0,behavior:'smooth'});
 }
 function search(v){
   clearSystemDetail();
+  document.body.classList.add('system-list');
   as=v.toLowerCase();
   // sync both search boxes
   const sb=document.getElementById('sb-srch');
