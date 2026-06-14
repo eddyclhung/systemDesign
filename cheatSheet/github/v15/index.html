@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff+ Interview Prep (v15)</title>
+<style>
+:root{--bg:#f5f5f4;--card:#fff;--text:#1a1a1a;--muted:#666;--accent:#185fa5;--border:rgba(0,0,0,.12);--r:12px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8b949e;--border:rgba(255,255,255,.12);--accent:#58a6ff}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);padding:40px 20px;line-height:1.65}
+.wrap{max-width:760px;margin:0 auto}
+.back{font-size:.9rem;margin-bottom:20px}
+.back a{color:var(--accent);text-decoration:none}
+.back a:hover{text-decoration:underline}
+article{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+article h1{font-size:1.45rem;margin-bottom:12px}
+article h2{font-size:1.15rem;margin:1.6rem 0 .6rem;padding-bottom:4px;border-bottom:1px solid var(--border)}
+article h3{font-size:1rem;margin:1.2rem 0 .4rem}
+article p,article li{font-size:.95rem;margin:.5rem 0}
+article ul,article ol{padding-left:1.4rem}
+article a{color:var(--accent)}
+article code{background:rgba(127,127,127,.12);padding:1px 5px;border-radius:4px;font-size:.88em}
+article pre{background:rgba(127,127,127,.1);padding:12px;border-radius:8px;overflow-x:auto;font-size:.85rem;margin:10px 0}
+article table{width:100%;border-collapse:collapse;font-size:.9rem;margin:12px 0}
+article th,article td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+article th{background:rgba(127,127,127,.08)}
+.note{background:rgba(24,95,165,.08);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0;font-size:.9rem}
+.toc a{display:block;padding:3px 0;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:100px;margin-left:6px}
+.be{background:#eaf3de;color:#27500a}.bm{background:#faeeda;color:#633806}.bh{background:#fcebeb;color:#791f1f}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back"><a href="../../index.html">← Cheat sheet index</a></p>
+  <article><h1>Staff+ Interview Prep (v15)</h1><p>40 system design cards for Staff+ interview prep.</p><div class="note">
+<b>GitHub Pages:</b> Per-system <code>.md</code> files show as raw text here.
+Use the HTML editions below — all 40 cards, search, and tabs on Pages.
+</div>
+<p>
+<a href="../../system_design_cheatsheet_v15_github.html">v15 pre-rendered HTML (recommended on Pages)</a> ·
+<a href="../../system_design_cheatsheet_v14.html">Full interactive v15</a> ·
+<a href="../v15-static.html">Static HTML (no JS)</a>
+</p><h2>Delivery framework</h2>
+<ol>
+<li><strong>Requirements</strong> (3–5 min) — functional + NFRs, draw out-of-scope line</li>
+<li><strong>Estimation</strong> — QPS, storage, bandwidth to justify decisions</li>
+<li><strong>API design</strong> — REST / WebSocket / gRPC, name routes explicitly</li>
+<li><strong>Data model</strong> — entities, SQL vs NoSQL with justification</li>
+<li><strong>High-level design</strong> — client → LB → services → DB/cache</li>
+<li><strong>Deep dives</strong> — 2–3 hardest problems, tradeoffs, failure modes</li>
+</ol>
+<p><strong>Key numbers:</strong> Redis ~100K–1M ops/s · Single DB ~10K–50K QPS · Kafka ~1M+ msgs/s · Cross-region ~100–200ms</p><div class="toc"><h3>Easy (4)</h3><a href="../../system_design_cheatsheet_v15_github.html#card-0">Bitly — URL shortener <span class="badge be">Easy</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-1">Dropbox — file storage <span class="badge be">Easy</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-2">Local delivery (GoPuff) <span class="badge be">Easy</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-3">News aggregator (Google News) <span class="badge be">Easy</span></a><h3>Medium (18)</h3><a href="../../system_design_cheatsheet_v15_github.html#card-4">Ticketmaster — seat booking <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-5">WhatsApp — messaging <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-6">FB News Feed <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-7">Tinder — dating app <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-8">LeetCode — coding platform <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-9">Distributed rate limiter <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-10">FB Live Comments <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-11">FB Post Search <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-12">Yelp — local search <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-13">Strava — activity tracking <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-14">Online auction (eBay) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-15">Price tracking (CamelCamelCamel) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-28">Notification system (APNs/FCM) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-29">Search autocomplete (Google) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-30">Unique ID generator (Snowflake) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-31">Hotel reservation (Booking.com) <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-32">Gaming leaderboard <span class="badge bm">Medium</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-38">S3 object storage <span class="badge bm">Medium</span></a><h3>Hard (18)</h3><a href="../../system_design_cheatsheet_v15_github.html#card-16">Instagram — photo sharing <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-17">YouTube Top K videos <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-18">Uber — ride-sharing <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-19">Robinhood — stock trading <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-20">Google Docs — collaborative editing <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-21">Distributed cache (Redis-like) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-22">YouTube — video platform <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-23">Web crawler <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-24">Ad click aggregator <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-25">Job scheduler (Airflow) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-26">Payment system (Stripe) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-27">Metrics monitoring (Datadog) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-33">Message queue (Kafka) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-34">Distributed key-value store <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-35">Nearby friends <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-36">Google Maps <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-37">Distributed email (Gmail) <span class="badge bh">Hard</span></a><a href="../../system_design_cheatsheet_v15_github.html#card-39">Digital wallet (Apple Pay) <span class="badge bh">Hard</span></a></div></article>
+</div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How to view cheat sheets on GitHub</title>
+<style>
+:root{--bg:#f5f5f4;--card:#fff;--text:#1a1a1a;--muted:#666;--accent:#185fa5;--border:rgba(0,0,0,.12);--r:12px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b22;--text:#e6edf3;--muted:#8b949e;--border:rgba(255,255,255,.12);--accent:#58a6ff}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);padding:40px 20px;line-height:1.65}
+.wrap{max-width:760px;margin:0 auto}
+.back{font-size:.9rem;margin-bottom:20px}
+.back a{color:var(--accent);text-decoration:none}
+.back a:hover{text-decoration:underline}
+article{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+article h1{font-size:1.45rem;margin-bottom:12px}
+article h2{font-size:1.15rem;margin:1.6rem 0 .6rem;padding-bottom:4px;border-bottom:1px solid var(--border)}
+article h3{font-size:1rem;margin:1.2rem 0 .4rem}
+article p,article li{font-size:.95rem;margin:.5rem 0}
+article ul,article ol{padding-left:1.4rem}
+article a{color:var(--accent)}
+article code{background:rgba(127,127,127,.12);padding:1px 5px;border-radius:4px;font-size:.88em}
+article pre{background:rgba(127,127,127,.1);padding:12px;border-radius:8px;overflow-x:auto;font-size:.85rem;margin:10px 0}
+article table{width:100%;border-collapse:collapse;font-size:.9rem;margin:12px 0}
+article th,article td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+article th{background:rgba(127,127,127,.08)}
+.note{background:rgba(24,95,165,.08);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:12px 0;font-size:.9rem}
+.toc a{display:block;padding:3px 0;text-decoration:none}
+.toc a:hover{text-decoration:underline}
+.badge{display:inline-block;font-size:.72rem;padding:2px 8px;border-radius:100px;margin-left:6px}
+.be{background:#eaf3de;color:#27500a}.bm{background:#faeeda;color:#633806}.bh{background:#fcebeb;color:#791f1f}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="back"><a href="index.html">← Cheat sheet index</a></p>
+  <article><h1>How to view cheat sheets on GitHub</h1>
+<p>Clicking an <code>.html</code> file on GitHub shows <strong>syntax-highlighted source code</strong>, not a rendered page. That is normal — GitHub serves HTML as <code>text/plain</code> in the repo browser.</p>
+<h2>What works today (no setup)</h2>
+<table><thead><tr>
+<th>Format</th>
+<th>Link</th>
+<th>Experience</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>v15 Markdown (recommended)</strong></td>
+<td><a href="github/v15/index.html">github/v15/index.md</a></td>
+<td>Renders in GitHub — 40 systems, expandable per-card links</td>
+</tr>
+<tr>
+<td><strong>v10 Markdown</strong></td>
+<td><a href="github/v10-cards/index.html">github/v10-cards/index.md</a></td>
+<td>26 system cards</td>
+</tr>
+<tr>
+<td><strong>Quick-fire</strong></td>
+<td><a href="interview-quick-fire.html">interview-quick-fire.html</a> or <a href="interview-quick-fire.html">.md</a></td>
+<td>Colorful HTML locally; MD on GitHub</td>
+</tr>
+<tr>
+<td><strong>EDA question bank</strong></td>
+<td><a href="EDA_Interview_Question_Bank_Complete.html">EDA_Interview_Question_Bank_Complete.html</a></td>
+<td>Interactive locally or on Pages — 26 questions, follow-ups, diagrams</td>
+</tr>
+</tbody></table>
+<h2>Render HTML without cloning</h2>
+<p>Paste the <strong>blob</strong> URL (from GitHub: <code>...</code> → *Copy permalink*) into a preview service:</p>
+<ul>
+<li><a href="https://html-preview.github.io/">html-preview.github.io</a> — prepend <code>https://html-preview.github.io/?</code> to your GitHub file URL</li>
+<li>Example (v15 pre-rendered):  </li>
+</ul>
+<p>  <code>https://html-preview.github.io/?https://github.com/eddyclhung/systemDesign/blob/main/cheatSheet/system_design_cheatsheet_v15_github.html</code></p>
+<ul>
+<li>Simpler static file (smaller):  </li>
+</ul>
+<p>  <code>https://html-preview.github.io/?https://github.com/eddyclhung/systemDesign/blob/main/cheatSheet/github/v15-static.html</code></p>
+<h2>Full interactivity (search, tabs, interview mode)</h2>
+<p><strong>Option A — GitHub Pages (best)</strong></p>
+<ol>
+<li>Repo → <strong>Settings</strong> → <strong>Pages</strong> → Build type: <strong>GitHub Actions</strong></li>
+<li>Push to <code>main</code> (workflow <code>.github/workflows/pages.yml</code> deploys <code>cheatSheet/</code>)</li>
+<li>Open: <code>https://eddyclhung.github.io/systemDesign/</code>  </li>
+</ol>
+<p>   (or <code>.../system_design_cheatsheet_v15_github.html</code>)</p>
+<p><strong>Option B — Local</strong></p>
+<pre><code>git clone git@github.com:eddyclhung/systemDesign.git
+open systemDesign/cheatSheet/index.html</code></pre>
+<h2>File guide</h2>
+<table><thead><tr>
+<th>File</th>
+<th>Use when</th>
+</tr></thead><tbody>
+<tr>
+<td><code>system_design_cheatsheet_v14.html</code></td>
+<td>Local/Pages — full JS (search, interview mode)</td>
+</tr>
+<tr>
+<td><code>system_design_cheatsheet_v15_github.html</code></td>
+<td>Pages or html-preview — pre-rendered cards + JS tabs</td>
+</tr>
+<tr>
+<td><code>github/v15-static.html</code></td>
+<td>html-preview — lightweight, no JS</td>
+</tr>
+<tr>
+<td><code>github/v15/*.md</code></td>
+<td><strong>GitHub repo browser</strong> — always works</td>
+</tr>
+<tr>
+<td><code>EDA_Interview_Question_Bank_Complete.html</code></td>
+<td>Local/Pages — EDA drill bank (search, filters, diagrams)</td>
+</tr>
+</tbody></table>
+<p>Regenerate after edits:</p>
+<pre><code>python3 scripts/build_prerendered_html.py
+python3 scripts/build_github_view.py</code></pre></article>
+</div>
+</body>
+</html>
