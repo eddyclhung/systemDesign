@@ -220,22 +220,6 @@ def render_scale_pills(pills: list) -> str:
     return f'<div class="pat-pills">{items}</div>'
 
 
-def render_arch_block(arch_d: str, arch_t: str) -> str:
-    if not arch_d and not arch_t:
-        return ""
-    h = '<div class="card-arch"><div class="nlbl">Architecture diagram</div>'
-    if arch_d:
-        h += f'<div class="ascii-wrap"><pre>{esc(arch_d)}</pre></div>'
-    if arch_t:
-        for p in arch_t.split("\n\n"):
-            if p.strip():
-                h += (
-                    f'<div class="ascii-desc"><p>{esc(p.replace(chr(10), " ").strip())}</p></div>'
-                )
-    h += "</div>"
-    return h
-
-
 def render_arch(arch_d: str, arch_t: str) -> str:
     if not arch_d:
         return '<p style="color:var(--txt-ter);padding:4px 0">Architecture diagram not available.</p>'
@@ -315,7 +299,6 @@ def render_card_html(s: dict) -> str:
     tags = "".join(f'<span class="tag">{esc(t)}</span>' for t in s["tags"])
     pills = render_scale_pills(s.get("scale_pills") or [])
     flow = render_diag(s.get("diag") or [], s.get("dn", ""))
-    arch_block = render_arch_block(s.get("arch_d", ""), s.get("arch_t", ""))
 
     # GitHub-safe fallback: <details> sections (work without JS)
     gh_sections = ""
@@ -354,7 +337,7 @@ def render_card_html(s: dict) -> str:
   <label class="studied-lbl"><input type="checkbox" data-studied="{idx}" onchange="toggleStudied({idx},this.checked)"> Studied</label>
 </div>
 <div class="chdr"><div><div class="ctitle">{esc(s["title"])}</div><div class="csub">{esc(s["sub"])}</div></div><span class="badge {badge}">{dtxt}</span></div>
-{see}{pills}{flow}{arch_block}
+{see}{pills}{flow}
 <div class="narr"><div class="nlbl">Data flow</div><div class="ntxt">{na}</div></div>
 <div class="trow">{tags}</div>
 <div class="gh-fallback">{gh_sections}</div>
@@ -374,9 +357,6 @@ html.js-enabled .gh-fallback{display:none}
 html.js-enabled .js-only{display:revert}
 html:not(.js-enabled) .js-only{display:none!important}
 .noscript-banner{background:var(--bg-warn);border:1px solid var(--bdr-warn);padding:10px 14px;margin:0 16px 12px;border-radius:var(--r);font-size:12px;line-height:1.5}
-.card-arch{padding:12px 14px;border-bottom:.5px solid var(--bdr-ter);background:var(--bg-sec)}
-.card-arch .ascii-wrap{margin-top:6px}
-.card-arch .ascii-desc{margin-top:8px;font-size:12px;color:var(--txt-sec);line-height:1.65}
 """ + LADDER_CSS
 
 NOSCRIPT_BANNER = """
