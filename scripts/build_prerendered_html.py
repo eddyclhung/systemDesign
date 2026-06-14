@@ -9,6 +9,7 @@ and produces a version suitable for GitHub Pages (JS still enhances UX).
 from __future__ import annotations
 
 import html
+import os
 import re
 import sys
 from pathlib import Path
@@ -363,22 +364,7 @@ def render_card_html(s: dict) -> str:
 </div>"""
 
 
-def patch_v15_html(text: str, systems: list[dict]) -> str:
-    by_diff = {"e": [], "m": [], "h": []}
-    for s in systems:
-        by_diff[s["diff"]].append(render_card_html(s))
-
-    for diff, gid in [("e", "ge"), ("m", "gm"), ("h", "gh")]:
-        cards = "\n".join(by_diff[diff])
-        text = re.sub(
-            rf'<div class="grid" id="{gid}"></div>',
-            f'<div class="grid" id="{gid}">\n{cards}\n</div>',
-            text,
-            count=1,
-        )
-
-    # GitHub preview CSS: show details fallback, hide JS tabs until script runs
-    gh_css = """
+GH_PAGES_CSS = """
 /* GitHub / no-JS: details panels visible */
 .gh-fallback details.gh-panel{margin:6px 14px;border:1px solid var(--bdr-ter);border-radius:var(--r);padding:8px 10px}
 .gh-fallback summary{cursor:pointer;font-weight:500;font-size:12px}
@@ -391,37 +377,68 @@ html:not(.js-enabled) .js-only{display:none!important}
 .card-arch .ascii-wrap{margin-top:6px}
 .card-arch .ascii-desc{margin-top:8px;font-size:12px;color:var(--txt-sec);line-height:1.65}
 """ + LADDER_CSS
-    text = text.replace("</style>", gh_css + "\n</style>", 1)
 
-    noscript = """
+NOSCRIPT_BANNER = """
 <noscript>
 <div class="noscript-banner">
-  <b>Viewing on GitHub?</b> JavaScript is disabled in GitHub's file preview — expand the sections below each card.
-  Expand the <b>sections below each card</b> to read all tabs.
-  For full interactivity (search, tabs, interview mode), clone the repo and open locally, or enable
-  <a href="https://docs.github.com/en/pages">GitHub Pages</a> (Settings → Pages → source: GitHub Actions).
-  Markdown: <a href="github/v15/index.md">github/v15/</a>
+  <b>JavaScript is off.</b> Expand the <b>sections below each card</b> to read all tabs.
+  For search, tabs, and interview mode, open this file locally or on
+  <a href="https://docs.github.com/en/pages">GitHub Pages</a> with JS enabled.
+  Card index: <a href="github/v15/index.html">github/v15/index.html</a>
 </div>
 </noscript>
 """
-    text = text.replace('<div class="main">', noscript + '<div class="main">', 1)
 
-    # render() skips if cards exist; mark JS enabled
-    text = text.replace(
-        "function render(){",
-        "function render(){\n  document.documentElement.classList.add('js-enabled');\n  if(document.querySelector('.card'))return;",
-        1,
-    )
 
-    # Shrink C array — keep empty stub for scripts that reference it
-    text = re.sub(
-        r"const C=\[[\s\S]*?\];",
-        "const C=[];/* cards pre-rendered in HTML for GitHub compatibility */",
-        text,
-        count=1,
-    )
+def inject_prerendered_cards(text: str, systems: list[dict]) -> str:
+    by_diff: dict[str, list[str]] = {"e": [], "m": [], "h": []}
+    for s in systems:
+        by_diff[s["diff"]].append(render_card_html(s))
 
-    # Update title/footer for github edition
+    for _diff, gid in [("e", "ge"), ("m", "gm"), ("h", "gh")]:
+        cards = "\n".join(by_diff[_diff])
+        text = re.sub(
+            rf'(<div class="grid" id="{gid}">)[\s\S]*?(</div>)',
+            rf"\1\n{cards}\n\2",
+            text,
+            count=1,
+        )
+    return text
+
+
+def add_gh_pages_support(text: str, *, clear_c_array: bool) -> str:
+    if ".gh-fallback details.gh-panel" not in text:
+        text = text.replace("</style>", GH_PAGES_CSS + "\n</style>", 1)
+
+    if "<noscript>" not in text:
+        text = text.replace('<div class="main">', NOSCRIPT_BANNER + '<div class="main">', 1)
+
+    if "if(document.querySelector('.card'))return" not in text:
+        text = text.replace(
+            "function render(){",
+            "function render(){\n  document.documentElement.classList.add('js-enabled');\n  if(document.querySelector('.card'))return;",
+            1,
+        )
+
+    if clear_c_array:
+        text = re.sub(
+            r"const C=\[[\s\S]*?\];",
+            "const C=[];/* cards pre-rendered in HTML for GitHub compatibility */",
+            text,
+            count=1,
+        )
+    return text
+
+
+def patch_v14_for_pages(text: str, systems: list[dict]) -> str:
+    """Inject pre-rendered cards for GitHub Pages deploy; keep C array in source for editors."""
+    text = inject_prerendered_cards(text, systems)
+    return add_gh_pages_support(text, clear_c_array=False)
+
+
+def patch_v15_html(text: str, systems: list[dict]) -> str:
+    text = inject_prerendered_cards(text, systems)
+    text = add_gh_pages_support(text, clear_c_array=True)
     text = text.replace(
         "System Design Cheat Sheet v15 — Eddy Hung 2026",
         "System Design Cheat Sheet v15 (GitHub) — Eddy Hung 2026",
@@ -483,6 +500,12 @@ def main():
     out = patch_v15_html(v15, systems)
     OUT.write_text(out, encoding="utf-8")
     print(f"Wrote {OUT.relative_to(ROOT)}")
+
+    # CI/Pages only: inject pre-rendered cards into v14 for deploy (git source stays lean).
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        v14_pages = patch_v14_for_pages(v15, systems)
+        SRC.write_text(v14_pages, encoding="utf-8")
+        print(f"Wrote Pages edition {SRC.relative_to(ROOT)} ({len(systems)} cards injected)")
 
     if V10_SRC.exists():
         v10 = V10_SRC.read_text(encoding="utf-8")

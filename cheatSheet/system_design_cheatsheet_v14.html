@@ -485,9 +485,11 @@ table.db-table tr:hover td { background: var(--bg-sec); }
 
 <div class="main">
 <div id="github-warn" style="background:var(--bg-warn);border-bottom:1px solid var(--bdr-warn);padding:10px 16px;font-size:12px;line-height:1.55;color:var(--txt-warn)">
-  <b>On GitHub?</b> Repo file preview shows HTML as <em>source code</em>, not a rendered page. Use
-  <a href="github/v15/index.md" style="color:var(--txt-info)">github/v15/index.md</a> in the repo browser, or
-  <a href="VIEW_ON_GITHUB.md" style="color:var(--txt-info)">VIEW_ON_GITHUB.md</a> for Pages / html-preview links.
+  <b>40 system cards</b> are below the framework sections — scroll past Quick-fire, or jump via the sidebar.
+  On GitHub Pages also try
+  <a href="system_design_cheatsheet_v15_github.html" style="color:var(--txt-info)">pre-rendered edition</a>.
+  Repo browser: <a href="github/v15/index.html" style="color:var(--txt-info)">card index</a> ·
+  <a href="VIEW_ON_GITHUB.html" style="color:var(--txt-info)">viewing guide</a>.
 </div>
 <div class="topbar" role="toolbar" aria-label="Main toolbar">
   <span class="brand">System Design Cheat Sheet · v15</span>
@@ -967,7 +969,7 @@ Name both explicitly — "POST /messages over REST, delivery notifications over 
   <div class="db-fw-body">
     <p style="font-size:11px;color:var(--txt-sec);margin-bottom:10px;line-height:1.6">
       <b>70+ patterns</b> with staff answer + trade-offs + examples —
-      <a href="interview-quick-fire.md" style="color:var(--txt-info)">interview-quick-fire.md</a>
+      <a href="interview-quick-fire.html" style="color:var(--txt-info)">interview-quick-fire.html</a>
       (best on GitHub). Includes <b>classic failure modes</b> (thundering herd, retry storm, hot key, split brain). Below: top 10 to drill before a mock.
     </p>
     <div class="qf-row"><div class="qf-prob">Reduce DB read load</div><div class="qf-ans">Read replicas + Redis cache-aside. Target &gt;90% hit rate. Invalidate on write. <em>Netflix serves ~95% of API from cache.</em></div></div>
@@ -981,7 +983,7 @@ Name both explicitly — "POST /messages over REST, delivery notifications over 
     <div class="qf-row"><div class="qf-prob">Store large files</div><div class="qf-ans">Object storage (S3) + CDN. Pre-signed URLs for direct client upload/download. DB stores metadata + URL only — never blob bytes in Postgres.</div></div>
     <div class="qf-row"><div class="qf-prob">Search across billions of records</div><div class="qf-ans">Elasticsearch as derived index. CDC or write-through from primary DB. ES is never source of truth — rebuild index if lost.</div></div>
     <div class="closer" style="margin-top:4px">Pattern for every answer: name the technique → explain why it fits this workload → name the tradeoff you're accepting.</div>
-    <p style="font-size:11px;color:var(--txt-ter);margin-top:10px">+60 more: thundering herd, metastable failure, poison messages, sagas, rate limits, payments → <a href="interview-quick-fire.md" style="color:var(--txt-info)">interview-quick-fire.md</a></p>
+    <p style="font-size:11px;color:var(--txt-ter);margin-top:10px">+60 more: thundering herd, metastable failure, poison messages, sagas, rate limits, payments → <a href="interview-quick-fire.html" style="color:var(--txt-info)">interview-quick-fire.html</a></p>
   </div>
 
   <div class="db-fw-hdr" onclick="toggleDb(this)">
