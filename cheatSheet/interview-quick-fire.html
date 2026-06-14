@@ -43,7 +43,15 @@ a{color:var(--prep-bdr)}
 .sidebar{width:280px;background:var(--card);border-right:1px solid rgba(0,0,0,.08);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
 .main{flex:1;max-width:920px;padding:28px 32px 80px}
 h1{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}
-.lead{color:var(--muted);margin-bottom:20px;font-size:.95rem}
+.lead p{color:var(--muted);margin-bottom:10px;font-size:.95rem}
+.intro{margin-bottom:8px}
+.intro h2{font-size:1.1rem;margin:22px 0 10px;letter-spacing:-.01em}
+.intro h3{font-size:1rem;margin:16px 0 8px}
+.intro table{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:.86rem}
+.intro th,.intro td{border:1px solid rgba(0,0,0,.1);padding:8px 10px;text-align:left;vertical-align:top}
+.intro th{background:rgba(0,0,0,.04);font-weight:600}
+.intro ul{margin:8px 0 16px 1.2rem;font-size:.9rem}
+.intro p{margin:8px 0 12px;font-size:.9rem;line-height:1.6}
 .legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:20px 0 28px}
 .leg{padding:10px 12px;border-radius:var(--r);border-left:4px solid;font-size:.8rem;font-weight:600}
 .leg small{display:block;font-weight:400;color:var(--muted);margin-top:2px;font-size:.72rem}
@@ -120,39 +128,11 @@ code{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding:
   </aside>
   <main class="main">
     <h1>Interview quick-fire</h1>
-    <p class="lead">When the interviewer pivots mid-design: <em>&quot;How would you handle X?&quot;</em> — answer with <strong>pattern → trade-off → anchor</strong>, then stop unless they want depth.
-
-Full cheatsheet: <a href="system_design_cheatsheet_v14.html">system_design_cheatsheet_v14.html</a> · <a href="github/v15/index.md">40 system cards</a> · <a href="interview-quick-fire.html">Colorful view</a> · <a href="interview-quick-fire-diagrams.html">Diagrams</a>
-
-
-
-
-## Staff answer ladder
-
-Interviewers score you by depth. For every pattern, practice three rungs:
-
-| Rung | What to say | What it signals |
-|------|-------------|-----------------|
-| 🔴 <strong>Weak</strong> | Name a tool, skip trade-offs | Junior — pattern recall only |
-| 🟡 <strong>Strong</strong> | Pattern + why it fits this workload | Mid — credible design |
-| 🟢 <strong>Staff+</strong> | Failure mode + metric + when you&#x27;d revisit | Staff — operated production |
-
-Each pattern below includes all three. <strong>Default answer in interview:</strong> Strong in 30s → offer Staff+ if they probe.
-
-
-
-## Severity legend
-
-| Badge | Level | When interviewers probe here |
-|-------|-------|------------------------------|
-| 🔴 <strong>Critical</strong> | Outage / cascade / data loss | Failure modes, &quot;what if X dies?&quot;, metastable |
-| 🟠 <strong>High</strong> | Resilience under stress | Availability, security, flash-sale contention |
-| 🟣 <strong>Important</strong> | Correctness &amp; invariants | Consistency tiers, money, inventory |
-| 🟢 <strong>Pattern</strong> | Standard staff answer | Reads, writes, fan-out, storage flows |
-| 🔵 <strong>Prep</strong> | Framework &amp; drill | Answer template, DMOP, practice |
-
-&gt; [!NOTE]
-&gt; <strong>Colorful view:</strong> open <a href="interview-quick-fire.html">interview-quick-fire.html</a> for Notion-style callouts, filters, and severity sidebar.</p>
+    <div class="lead"><p>When the interviewer pivots mid-design: <em>&quot;How would you handle X?&quot;</em> — answer with <strong>pattern → trade-off → anchor</strong>, then stop unless they want depth.</p><p>Full cheatsheet: <a href="system_design_cheatsheet_v14.html">system_design_cheatsheet_v14.html</a> · <a href="github/v15/index.md">40 system cards</a> · <a href="interview-quick-fire.html">Colorful view</a> · <a href="interview-quick-fire-diagrams.html">Diagrams</a></p></div>
+    <div class="intro"><h2>Staff answer ladder</h2>
+<p>Interviewers score you by depth. For every pattern, practice three rungs:</p>
+<table><thead><tr><th>Rung</th><th>What to say</th><th>What it signals</th></tr></thead><tbody><tr><td>🔴 <strong>Weak</strong></td><td>Name a tool, skip trade-offs</td><td>Junior — pattern recall only</td></tr><tr><td>🟡 <strong>Strong</strong></td><td>Pattern + why it fits this workload</td><td>Mid — credible design</td></tr><tr><td>🟢 <strong>Staff+</strong></td><td>Failure mode + metric + when you&#x27;d revisit</td><td>Staff — operated production</td></tr></tbody></table>
+<p>Each pattern below includes all three. <strong>Default answer in interview:</strong> Strong in 30s → offer Staff+ if they probe.</p></div>
     <div class="legend">
       <div class="leg critical">🔴 Critical<small>Outage / cascade</small></div>
       <div class="leg high">🟠 High<small>Resilience stress</small></div>

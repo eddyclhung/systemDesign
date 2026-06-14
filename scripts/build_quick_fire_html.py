@@ -206,6 +206,90 @@ def md_inline(text: str) -> str:
     return text
 
 
+def render_md_table(block: str) -> str:
+    rows: list[list[str]] = []
+    for line in block.split("\n"):
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if cells and all(re.fullmatch(r":?-{3,}:?", c) for c in cells):
+            continue
+        rows.append(cells)
+    if not rows:
+        return f"<p>{md_inline(block)}</p>"
+    head, *body = rows
+    h = "<table><thead><tr>" + "".join(f"<th>{md_inline(c)}</th>" for c in head) + "</tr></thead><tbody>"
+    for row in body:
+        h += "<tr>" + "".join(f"<td>{md_inline(c)}</td>" for c in row) + "</tr>"
+    return h + "</tbody></table>"
+
+
+CALLOUT_CSS = {
+    "NOTE": "prep",
+    "TIP": "pattern",
+    "WARNING": "high",
+    "CAUTION": "critical",
+    "IMPORTANT": "important",
+}
+
+
+def md_blocks(text: str) -> str:
+    if not text.strip():
+        return ""
+    out: list[str] = []
+    for block in re.split(r"\n\n+", text.strip()):
+        block = block.strip()
+        if not block:
+            continue
+        if block.startswith("## "):
+            out.append(f"<h2>{md_inline(block[3:].strip())}</h2>")
+        elif block.startswith("### "):
+            out.append(f"<h3>{md_inline(block[4:].strip())}</h3>")
+        elif block.startswith("|"):
+            out.append(render_md_table(block))
+        elif block.startswith(">"):
+            alert = "NOTE"
+            content_lines: list[str] = []
+            for line in block.split("\n"):
+                line = line.lstrip("> ").strip()
+                m = re.match(r"\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]", line)
+                if m:
+                    alert = m.group(1)
+                    continue
+                if line:
+                    content_lines.append(line)
+            css = CALLOUT_CSS.get(alert, "prep")
+            content = md_inline(" ".join(content_lines))
+            out.append(f'<div class="callout {css}"><strong>{alert}</strong>{content}</div>')
+        elif re.match(r"^[-*] ", block):
+            items = [
+                md_inline(line[2:].strip())
+                for line in block.split("\n")
+                if re.match(r"^[-*] ", line)
+            ]
+            out.append("<ul>" + "".join(f"<li>{item}</li>" for item in items) + "</ul>")
+        else:
+            out.append(f"<p>{md_inline(block.replace(chr(10), ' '))}</p>")
+    return "\n".join(out)
+
+
+def split_intro(intro: str) -> tuple[str, str]:
+    """Lead paragraphs before first ##; blocks exclude Severity legend (page has .legend)."""
+    intro = intro.strip()
+    m = re.search(r"\n## ", intro)
+    lead = intro[: m.start()].strip() if m else intro
+    blocks = intro[m.start() :].strip() if m else ""
+    if "## Severity legend" in blocks:
+        blocks = re.split(r"\n## Severity legend\b", blocks, maxsplit=1)[0].strip()
+    return lead, blocks
+
+
+def md_lead(text: str) -> str:
+    paras = [p.strip() for p in re.split(r"\n\n+", text.strip()) if p.strip()]
+    return "".join(f"<p>{md_inline(p.replace(chr(10), ' '))}</p>" for p in paras)
+
+
 def enrich_markdown(md: str, sections: list[dict]) -> str:
     legend = """
 ## Severity legend
@@ -313,7 +397,15 @@ def build_html(intro: str, sections: list[dict]) -> str:
         )
 
     payload = json.dumps(data, ensure_ascii=False)
-    intro_html = md_inline(intro) if intro else ""
+    lead_md, intro_blocks_md = split_intro(intro)
+    lead_html = md_lead(lead_md) if lead_md else ""
+    intro_blocks_html = md_blocks(intro_blocks_md) if intro_blocks_md else ""
+    intro_section = (
+        f'<div class="intro">{intro_blocks_html}</div>' if intro_blocks_html else ""
+    )
+    lead_fallback = (
+        "Problem → staff-level answer. Filter by severity — drill critical failure modes first."
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -360,7 +452,15 @@ a{{color:var(--prep-bdr)}}
 .sidebar{{width:280px;background:var(--card);border-right:1px solid rgba(0,0,0,.08);padding:16px 12px;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}}
 .main{{flex:1;max-width:920px;padding:28px 32px 80px}}
 h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
-.lead{{color:var(--muted);margin-bottom:20px;font-size:.95rem}}
+.lead p{{color:var(--muted);margin-bottom:10px;font-size:.95rem}}
+.intro{{margin-bottom:8px}}
+.intro h2{{font-size:1.1rem;margin:22px 0 10px;letter-spacing:-.01em}}
+.intro h3{{font-size:1rem;margin:16px 0 8px}}
+.intro table{{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:.86rem}}
+.intro th,.intro td{{border:1px solid rgba(0,0,0,.1);padding:8px 10px;text-align:left;vertical-align:top}}
+.intro th{{background:rgba(0,0,0,.04);font-weight:600}}
+.intro ul{{margin:8px 0 16px 1.2rem;font-size:.9rem}}
+.intro p{{margin:8px 0 12px;font-size:.9rem;line-height:1.6}}
 .legend{{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:20px 0 28px}}
 .leg{{padding:10px 12px;border-radius:var(--r);border-left:4px solid;font-size:.8rem;font-weight:600}}
 .leg small{{display:block;font-weight:400;color:var(--muted);margin-top:2px;font-size:.72rem}}
@@ -437,7 +537,8 @@ code{{font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.06);padding
   </aside>
   <main class="main">
     <h1>Interview quick-fire</h1>
-    <p class="lead">{intro_html or "Problem → staff-level answer. Filter by severity — drill critical failure modes first."}</p>
+    <div class="lead">{lead_html or f"<p>{md_inline(lead_fallback)}</p>"}</div>
+    {intro_section}
     <div class="legend">
       <div class="leg critical">🔴 Critical<small>Outage / cascade</small></div>
       <div class="leg high">🟠 High<small>Resilience stress</small></div>
