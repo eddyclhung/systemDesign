@@ -290,6 +290,7 @@ def parse_page_title(md: str) -> tuple[str, str]:
 
 LINK_LABELS = {
     "system_design_cheatsheet_v14.html": "Full cheatsheet",
+    "github/v15/index.html": "40 system cards",
     "github/v15/index.md": "40 system cards",
     "interview-quick-fire-diagrams.html": "Diagrams",
 }
@@ -305,6 +306,8 @@ def render_hero(lead_md: str) -> str:
             for label, href in links:
                 if href == "interview-quick-fire.html":
                     continue
+                if href == "github/v15/index.md":
+                    href = "github/v15/index.html"
                 text = LINK_LABELS.get(href, label)
                 pills.append(
                     f'<a href="{html.escape(href, quote=True)}">{md_inline(text)}</a>'

@@ -2,7 +2,7 @@
 
 When the interviewer pivots mid-design: *"How would you handle X?"* — answer with **pattern → trade-off → anchor**, then stop unless they want depth.
 
-Full cheatsheet: [system_design_cheatsheet_v14.html](system_design_cheatsheet_v14.html) · [40 system cards](github/v15/index.md) · [Colorful view](interview-quick-fire.html) · [Diagrams](interview-quick-fire-diagrams.html)
+Full cheatsheet: [system_design_cheatsheet_v14.html](system_design_cheatsheet_v14.html) · [40 system cards](github/v15/index.html) · [Colorful view](interview-quick-fire.html) · [Diagrams](interview-quick-fire-diagrams.html)
 
 
 
@@ -18,7 +18,6 @@ Interviewers score you by depth. For every pattern, practice three rungs:
 | 🟢 **Staff+** | Failure mode + metric + when you'd revisit | Staff — operated production |
 
 Each pattern below includes all three. **Default answer in interview:** Strong in 30s → offer Staff+ if they probe.
-
 
 
 
