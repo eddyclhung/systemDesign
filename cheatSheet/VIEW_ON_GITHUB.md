@@ -9,6 +9,7 @@ Clicking an `.html` file on GitHub shows **syntax-highlighted source code**, not
 | **v15 Markdown (recommended)** | [github/v15/index.md](github/v15/index.md) | Renders in GitHub — 40 systems, expandable per-card links |
 | **v10 Markdown** | [github/v10-cards/index.md](github/v10-cards/index.md) | 26 system cards |
 | **Quick-fire** | [interview-quick-fire.html](interview-quick-fire.html) or [.md](interview-quick-fire.md) | Colorful HTML locally; MD on GitHub |
+| **EDA question bank** | [EDA_Interview_Question_Bank_Complete.html](EDA_Interview_Question_Bank_Complete.html) | Interactive locally or on Pages — 26 questions, follow-ups, diagrams |
 
 ## Render HTML without cloning
 
@@ -44,6 +45,7 @@ open systemDesign/cheatSheet/index.html
 | `system_design_cheatsheet_v15_github.html` | Pages or html-preview — pre-rendered cards + JS tabs |
 | `github/v15-static.html` | html-preview — lightweight, no JS |
 | `github/v15/*.md` | **GitHub repo browser** — always works |
+| `EDA_Interview_Question_Bank_Complete.html` | Local/Pages — EDA drill bank (search, filters, diagrams) |
 
 Regenerate after edits:
 

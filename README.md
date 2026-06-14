@@ -1,6 +1,6 @@
 # System Design Cheat Sheets
 
-Offline, self-contained HTML reference guides for system design interview prep. Open any file directly in a browser — no build step or server required.
+Offline, self-contained HTML reference guides for system design and event-driven architecture interview prep. Open any file directly in a browser — no build step or server required.
 
 **Start here:** [`cheatSheet/index.html`](cheatSheet/index.html)
 
@@ -22,11 +22,13 @@ flowchart TB
         subgraph cheatSheet["cheatSheet/"]
             v10["SystemDesign_Complete_v10.html"]
             v15["system_design_cheatsheet_v14.html (v15)"]
+            eda["EDA_Interview_Question_Bank_Complete.html"]
         end
     end
 
     INDEX --> v10
     INDEX --> v15
+    INDEX --> eda
 
     v10 --> bbg["ByteByteGo Reference"]
     v10 --> cards["System Cards"]
@@ -43,16 +45,20 @@ flowchart TB
     v15 --> quickref["Quick Reference + Cloud cmds"]
     v15 --> s40["40 systems · 4E / 18M / 18H"]
 
+    eda --> edaq["26 EDA questions · 78 follow-ups · 12 diagrams"]
+
     goal{{"What's your goal?"}}
     goal -->|"Study ByteByteGo"| v10
     goal -->|"Practice interviews"| v15
+    goal -->|"Drill Kafka / EDA"| eda
 ```
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10 or v15 |
+| [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10, v15, or EDA |
+| [`cheatSheet/EDA_Interview_Question_Bank_Complete.html`](cheatSheet/EDA_Interview_Question_Bank_Complete.html) | **EDA interview bank** — 26 questions, follow-ups, diagrams |
 | [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) | **v15 on GitHub** — Markdown (renders in repo browser) |
 | [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) | **v15 HTML** — pre-rendered for Pages / html-preview |
 | [`cheatSheet/VIEW_ON_GITHUB.md`](cheatSheet/VIEW_ON_GITHUB.md) | **Viewing guide** — what works where |
@@ -70,6 +76,7 @@ open cheatSheet/index.html
 # or directly:
 open cheatSheet/system_design_cheatsheet_v14.html
 open cheatSheet/SystemDesign_Complete_v10.html
+open cheatSheet/EDA_Interview_Question_Bank_Complete.html
 ```
 
 Validate card data after edits:
@@ -108,7 +115,7 @@ python3 scripts/build_github_view.py          # v15 MD deep dives
 |------|-------|---------|
 | 1 | Easy + framework | Bitly, Dropbox, GoPuff, Google News — memorize delivery framework + estimation worksheet |
 | 2 | Medium reads/writes | WhatsApp, News Feed, Yelp, Rate limiter, Notification, Autocomplete — practice 45-min mocks |
-| 3 | Hard distributed | Uber, YouTube, Payment, Kafka, KV store, Google Docs — deep dives + failure modes |
+| 3 | Hard distributed | Uber, YouTube, Payment, Kafka, KV store, Google Docs — deep dives + failure modes; pair Kafka card with [`EDA question bank`](cheatSheet/EDA_Interview_Question_Bank_Complete.html) |
 | 4 | Gap fill + review | Maps, Email, S3, Wallet + any weak cards — interview mode + print for flashcards |
 
 ### ByteByteGo alignment (v10 → v15)
@@ -121,6 +128,7 @@ Use v10 chapters for theory, then drill the matching v15 card:
 - Object Storage (S3) → S3 object storage
 - Distributed Email → Distributed email (Gmail)
 - Payment System → Payment system + Digital wallet
+- Distributed Message Queue (Kafka) → Message queue (Kafka) + [`EDA question bank`](cheatSheet/EDA_Interview_Question_Bank_Complete.html)
 
 ## system_design_cheatsheet_v14.html (v15)
 
@@ -175,9 +183,27 @@ Two-tab cheatsheet: ByteByteGo reference + 26 system cards.
 
 **Features:** topic search, chapter sidebar, print layout. Links to v15 Staff+ prep in header.
 
+## EDA_Interview_Question_Bank_Complete.html
+
+Focused **event-driven architecture** drill bank — complements v15 cards like Kafka, message queue, and notification systems.
+
+**26 questions** across 10 categories: delivery semantics, ordering, failure handling, Kafka internals, patterns, backpressure, schema evolution, observability, async vs sync, and real-world failures.
+
+Each question includes a **strong-hire answer**, a **trade-off to deliver proactively**, expandable **follow-up Q&A** (78 total), and **inline SVG diagrams** (12 across categories).
+
+**UX features**
+- Category sidebar + search
+- Mark reviewed + progress bar
+- Hide reviewed / hard-only filters
+- Expand / collapse all
+- Keyboard shortcuts (`/` search, `h` hard only, `r` hide reviewed, `Esc` clear search)
+
+Open locally or via GitHub Pages — fully self-contained except Google Fonts (loads when online).
+
 ## Which one to use?
 
 - **Studying ByteByteGo** or need cloud CLI reference → `SystemDesign_Complete_v10.html`
 - **Practicing live interviews** with framework, DB chooser, scripts → `system_design_cheatsheet_v14.html` (v15)
+- **Drilling Kafka / delivery semantics / EDA follow-ups** → `EDA_Interview_Question_Bank_Complete.html`
 
-Both files are standalone — styles and scripts embedded inline. Optional: extract system data with `python3 scripts/extract_systems.py`.
+All files are standalone — styles and scripts embedded inline. Optional: extract system data with `python3 scripts/extract_systems.py`.
