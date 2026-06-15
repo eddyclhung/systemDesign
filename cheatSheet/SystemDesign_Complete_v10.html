@@ -195,6 +195,7 @@
   .main {
     overflow-y: auto;
     padding: 0;
+    scroll-padding-top: 16px;
   }
 
   .chapter {
@@ -3144,13 +3145,15 @@ HttpRequest req = HttpRequest.newBuilder()
   const searchInput = document.getElementById('search');
   const noResults = document.getElementById('no-results');
 
-  function showChapter(id) {
+  function showChapter(id, opts) {
     chapters.forEach(c => c.classList.remove('active'));
     items.forEach(i => i.classList.remove('active'));
     const ch = document.getElementById(id);
     if (ch) {
       ch.classList.add('active');
-      ch.scrollIntoView ? document.getElementById('main-content').scrollTop = 0 : null;
+      if (!opts || !opts.keepScroll) {
+        document.getElementById('main-content').scrollTop = 0;
+      }
     }
     const item = document.querySelector(`[data-ch="${id}"]`);
     if (item) {
@@ -8023,25 +8026,26 @@ function toggleSubnav(item) {
 }
 
 function scrollToSection(secId) {
-  // Make sure appendix is active
-  showChapter('ch-appendix');
-  // Expand subnav
+  const appendix = document.getElementById('ch-appendix');
+  const alreadyActive = appendix && appendix.classList.contains('active');
+  showChapter('ch-appendix', { keepScroll: alreadyActive });
   const subnav = document.getElementById('subnav-appendix');
   const parent = document.querySelector('.sidebar-item-parent');
-  if (subnav) { subnav.classList.add('open'); }
-  if (parent) { parent.classList.add('open'); }
-  // Scroll to section after a tick (chapter transition)
-  setTimeout(() => {
+  if (subnav) subnav.classList.add('open');
+  if (parent) parent.classList.add('open');
+  const scroll = () => {
     const el = document.getElementById(secId);
     const main = document.getElementById('main-content');
     if (el && main) {
-      main.scrollTop = el.offsetTop - 20;
+      const top = main.scrollTop + (el.getBoundingClientRect().top - main.getBoundingClientRect().top) - 16;
+      main.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
     }
-    // Highlight active subitem
     document.querySelectorAll('.sidebar-subitem').forEach(s => s.classList.remove('active'));
-    const sub = document.querySelector(`.sidebar-subitem[data-sec="${secId}"]`);
+    const sub = document.querySelector('.sidebar-subitem[data-sec="' + secId + '"]');
     if (sub) sub.classList.add('active');
-  }, 50);
+  };
+  if (alreadyActive) scroll();
+  else requestAnimationFrame(() => requestAnimationFrame(scroll));
 }
 
 function navToSection(secId, btn) {
