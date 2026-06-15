@@ -536,7 +536,157 @@
   .view-panel{display:none;min-height:calc(100vh - 65px)}
   .view-panel.active{display:flex;flex-direction:column}
   #view-bbg{overflow:hidden}
-  #view-bbg .layout{height:calc(100vh - 113px);min-height:unset}
+  #view-bbg .layout{
+    height:calc(100vh - 113px);min-height:unset;
+    grid-template-columns:minmax(160px,220px) minmax(0,1fr);
+  }
+  #view-bbg .main{
+    container-type:inline-size;
+    container-name:bbg-main;
+    min-width:0;
+  }
+  #view-bbg .chapter{
+    max-width:none;
+    width:100%;
+    box-sizing:border-box;
+  }
+  #view-bbg .tbl-wrap,
+  #view-bbg .table-wrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+  }
+  #view-bbg .tbl-wrap table{
+    width:100%;
+    min-width:0;
+    table-layout:auto;
+    border-collapse:collapse;
+  }
+  #view-bbg .ref-table{
+    width:100%;
+    min-width:0;
+    table-layout:auto;
+  }
+  #view-bbg .ref-table th:first-child,
+  #view-bbg .ref-table td:first-child{
+    position:sticky;
+    left:0;
+    z-index:1;
+  }
+  #view-bbg .ref-table thead th:first-child{
+    z-index:3;
+    background:var(--navy3);
+  }
+  #view-bbg .ref-table td:first-child{
+    background:var(--navy2);
+  }
+  #view-bbg .ref-table tbody tr:hover td:first-child{
+    background:rgba(255,255,255,0.025);
+  }
+  #view-bbg .tbl-wrap td,
+  #view-bbg .tbl-wrap th,
+  #view-bbg .ref-table td,
+  #view-bbg .ref-table th{
+    word-break:break-word;
+    overflow-wrap:anywhere;
+  }
+
+  @container bbg-main (max-width:1100px){
+    #view-bbg .ref-table td,
+    #view-bbg .ref-table th,
+    #view-bbg .tbl-wrap td,
+    #view-bbg .tbl-wrap th{
+      padding:8px 10px;
+      font-size:12px;
+    }
+    #view-bbg .cmd-list li{font-size:10px;padding:3px 6px}
+    #view-bbg .cloud-table .java-cell,
+    #view-bbg .cloud-table col.c7{display:none}
+  }
+  @container bbg-main (max-width:880px){
+    #view-bbg .ref-table.db-table{min-width:640px}
+    #view-bbg .ref-table.cap-table{min-width:600px}
+    #view-bbg .ref-table.proto-table{min-width:620px}
+    #view-bbg .ref-table.qf-table{min-width:560px}
+    #view-bbg .ref-table.cloud-table{min-width:780px}
+    #view-bbg .cloud-table .cmd-cell,
+    #view-bbg .cloud-table col.c6{display:none}
+    #view-bbg .tbl-wrap td,
+    #view-bbg .tbl-wrap th{padding:7px 9px;font-size:11.5px}
+  }
+  @container bbg-main (max-width:640px){
+    #view-bbg .chapter{padding:20px 14px}
+    #view-bbg .ref-table colgroup{display:none}
+    #view-bbg .ref-table thead{display:none}
+    #view-bbg .ref-table tbody tr{
+      display:block;
+      margin-bottom:14px;
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+      background:var(--navy3);
+      overflow:hidden;
+    }
+    #view-bbg .ref-table tbody tr:hover{background:var(--navy3)}
+    #view-bbg .ref-table td{
+      display:block;
+      width:100%!important;
+      padding:8px 12px;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    #view-bbg .cloud-table .cmd-cell,
+    #view-bbg .cloud-table .java-cell{display:none!important}
+    #view-bbg .ref-table td:last-child{border-bottom:none}
+    #view-bbg .ref-table td:first-child{
+      position:static;
+      font-size:13px;
+      padding:10px 12px;
+      background:rgba(255,255,255,0.04);
+      border-bottom:1px solid var(--border);
+    }
+    #view-bbg .ref-table td::before{
+      display:block;
+      font-size:9px;
+      font-family:var(--mono);
+      font-weight:600;
+      letter-spacing:.06em;
+      text-transform:uppercase;
+      color:var(--text-dim);
+      margin-bottom:4px;
+    }
+    #view-bbg .ref-table td:first-child::before{display:none}
+    #view-bbg .ref-table.db-table td:nth-child(1)::before{content:"Use Case"}
+    #view-bbg .ref-table.db-table td:nth-child(2)::before{content:"Best Choice"}
+    #view-bbg .ref-table.db-table td:nth-child(3)::before{content:"Why"}
+    #view-bbg .ref-table.db-table td:nth-child(4)::before{content:"Key Commands"}
+    #view-bbg .ref-table.cap-table td:nth-child(1)::before{content:"System"}
+    #view-bbg .ref-table.cap-table td:nth-child(2)::before{content:"CAP"}
+    #view-bbg .ref-table.cap-table td:nth-child(3)::before{content:"Behavior"}
+    #view-bbg .ref-table.cap-table td:nth-child(4)::before{content:"Key Commands"}
+    #view-bbg .ref-table.proto-table td:nth-child(1)::before{content:"Protocol"}
+    #view-bbg .ref-table.proto-table td:nth-child(2)::before{content:"Pattern"}
+    #view-bbg .ref-table.proto-table td:nth-child(3)::before{content:"Use Case"}
+    #view-bbg .ref-table.proto-table td:nth-child(4)::before{content:"Key Commands"}
+    #view-bbg .ref-table.qf-table td:nth-child(1)::before{content:"Problem"}
+    #view-bbg .ref-table.qf-table td:nth-child(2)::before{content:"Answer"}
+    #view-bbg .ref-table.qf-table td:nth-child(3)::before{content:"Key Commands"}
+    #view-bbg .ref-table.cloud-table td:nth-child(1)::before{content:"Service"}
+    #view-bbg .ref-table.cloud-table td:nth-child(2)::before{content:"Category"}
+    #view-bbg .ref-table.cloud-table td:nth-child(3)::before{content:"Use In Systems"}
+    #view-bbg .ref-table.cloud-table td:nth-child(4)::before{content:"Pros / Cons"}
+    #view-bbg .ref-table.cloud-table td:nth-child(5)::before{content:"Cost"}
+    #view-bbg .ref-table.cloud-table td:nth-child(6)::before{content:"Key Commands"}
+    #view-bbg .ref-table.cloud-table td:nth-child(7)::before{content:"Java Single-Server Equiv."}
+    #view-bbg .ref-table.db-table,
+    #view-bbg .ref-table.cap-table,
+    #view-bbg .ref-table.proto-table,
+    #view-bbg .ref-table.qf-table,
+    #view-bbg .ref-table.cloud-table{min-width:0}
+    #view-bbg .tbl-wrap table{
+      min-width:min(100%,420px);
+      table-layout:auto;
+    }
+  }
   #view-cards{overflow:hidden}
 
 /* ══ Card System ══════════════════════════════════════════ */
