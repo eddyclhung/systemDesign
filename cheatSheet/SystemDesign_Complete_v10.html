@@ -518,6 +518,9 @@
   /* ── Print ─────────────────────────────────────── */
   @media print {
     .sidebar, .header { display: none; }
+    .cards-sidebar, .cards-sb-toggle, .cards-sb-overlay { display: none !important; }
+    .cards-shell { display: block; height: auto; }
+    .cards-main { overflow: visible; }
     .chapter { display: block !important; page-break-after: always; padding: 20px; }
     body { background: white; color: black; }
   }
@@ -533,10 +536,97 @@
   .view-panel.active{display:flex;flex-direction:column}
   #view-bbg{overflow:hidden}
   #view-bbg .layout{height:calc(100vh - 113px);min-height:unset}
-  #view-cards{overflow-y:auto}
+  #view-cards{overflow:hidden}
 
 /* ══ Card System ══════════════════════════════════════════ */
-#view-cards { overflow-y:auto; padding:0; }
+#view-cards { overflow:hidden; padding:0; }
+.cards-shell {
+  display:flex; height:calc(100vh - 113px); min-height:0; overflow:hidden;
+}
+.cards-sidebar {
+  width:240px; flex-shrink:0;
+  background:var(--navy2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  height:100%; overflow-y:auto; overflow-x:hidden;
+  position:relative; z-index:10;
+}
+#view-cards .sidebar-inner {
+  padding:14px 12px; display:flex; flex-direction:column; gap:1px;
+}
+#view-cards .sb-brand {
+  font-size:13px; font-weight:700; color:var(--text);
+  padding:4px 2px 12px; border-bottom:1px solid var(--border);
+  margin-bottom:8px; line-height:1.4;
+}
+#view-cards .sb-brand span {
+  display:block; font-size:10px; font-weight:400;
+  color:var(--text-dim); margin-top:2px;
+}
+#cards-sb-srch {
+  font-size:12px; padding:6px 10px; border-radius:6px;
+  border:1px solid var(--border); background:var(--navy3);
+  color:var(--text); width:100%; outline:none; margin-bottom:8px;
+  box-sizing:border-box; font-family:var(--font);
+}
+#cards-sb-srch:focus { border-color:var(--border2); }
+#view-cards .sb-section {
+  font-size:9px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--text-dim);
+  padding:10px 2px 4px; margin-top:2px; flex-shrink:0;
+}
+#view-cards .sb-btn {
+  display:block; width:100%; text-align:left;
+  padding:5px 10px; border-radius:6px; font-size:12px; font-weight:500;
+  cursor:pointer; border:none; background:none; color:var(--text-muted);
+  transition:background .1s; margin-bottom:1px; font-family:var(--font);
+}
+#view-cards .sb-btn:hover { background:rgba(255,255,255,.05); color:var(--text); }
+#view-cards .sb-btn.on { background:rgba(37,99,235,.18); color:var(--blue-light); }
+#view-cards .sb-btn.easy.on { background:rgba(5,150,105,.18); color:#34d399; }
+#view-cards .sb-btn.med.on { background:rgba(217,119,6,.18); color:var(--amber-light); }
+#view-cards .sb-btn.hard.on { background:rgba(220,38,38,.18); color:#f87171; }
+#view-cards .sb-nav {
+  display:block; padding:5px 10px; font-size:12px; color:var(--text-muted);
+  cursor:pointer; border-radius:5px; text-decoration:none;
+  transition:background .1s; margin-bottom:1px;
+}
+#view-cards .sb-nav:hover { background:rgba(255,255,255,.05); color:var(--text); }
+#view-cards .sb-sys {
+  display:block; padding:3px 10px; font-size:11px; color:var(--text-dim);
+  cursor:pointer; border-radius:4px; text-decoration:none;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  line-height:1.7; transition:background .1s;
+}
+#view-cards .sb-sys:hover { background:rgba(255,255,255,.05); color:var(--text); }
+#view-cards .sb-sys.active {
+  background:rgba(37,99,235,.18); color:var(--blue-light)!important; font-weight:500;
+}
+#view-cards a.sb-sys.sb-e { color:#34d399!important; }
+#view-cards a.sb-sys.sb-m { color:var(--amber-light)!important; }
+#view-cards a.sb-sys.sb-h { color:#f87171!important; }
+.cards-main {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  min-width:0; scroll-padding-top:12px;
+}
+.cards-sb-toggle {
+  display:none; position:fixed; top:72px; left:12px; z-index:200;
+  background:var(--navy2); border:1px solid var(--border);
+  border-radius:8px; padding:7px 10px; cursor:pointer;
+  font-size:15px; line-height:1; color:var(--text);
+}
+.cards-sb-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:99;
+}
+.cards-sb-overlay.open { display:block; }
+@media (max-width:768px) {
+  #view-cards.active .cards-sb-toggle { display:flex; align-items:center; justify-content:center; }
+  .cards-sidebar {
+    position:fixed; top:0; left:0; height:100vh; width:260px;
+    transform:translateX(-100%); transition:transform .22s; z-index:100;
+  }
+  .cards-sidebar.open { transform:translateX(0); }
+  .cards-main { padding-top:0; }
+}
 .cards-topbar {
   position:sticky; top:0; z-index:40;
   background:var(--navy2); border-bottom:1px solid var(--border);
@@ -577,6 +667,7 @@
   border-bottom:1px solid var(--border); display:flex; flex-direction:column;
 }
 .scard.hidden { display:none!important; }
+.scard-flash { outline:2px solid var(--blue-light); outline-offset:-2px; transition:outline .1s; }
 
 .scard-hdr {
   padding:12px 14px; display:flex; justify-content:space-between;
@@ -3148,8 +3239,29 @@ HttpRequest req = HttpRequest.newBuilder()
 </script>
 
 <div class="view-panel" id="view-cards">
+<button class="cards-sb-toggle" onclick="toggleCardsSidebar()" id="cards-sb-tog" type="button" aria-label="Open system list">☰</button>
+<div class="cards-sb-overlay" id="cards-sb-ov" onclick="toggleCardsSidebar()"></div>
+<div class="cards-shell">
+<nav class="cards-sidebar" id="cards-sidebar">
+  <div class="sidebar-inner">
+    <div class="sb-brand">System Cards<span>26 systems · ByteByteGo Vol 1 &amp; 2</span></div>
+    <input id="cards-sb-srch" placeholder="Search systems…" oninput="cardsSbSearch(this.value)" autocomplete="off">
+    <div class="sb-section">Filter</div>
+    <button class="sb-btn sb-filt on" onclick="filterCards('all',this)" id="cfb-all" type="button">All 26</button>
+    <button class="sb-btn sb-filt easy" onclick="filterCards('e',this)" id="cfb-e" type="button">Easy</button>
+    <button class="sb-btn sb-filt med" onclick="filterCards('m',this)" id="cfb-m" type="button">Medium</button>
+    <button class="sb-btn sb-filt hard" onclick="filterCards('h',this)" id="cfb-h" type="button">Hard</button>
+    <div class="sb-section">Jump to</div>
+    <a class="sb-nav" href="#cards-db" onclick="jumpCardsTo('cards-db',event)">🗄 Database chooser</a>
+    <a class="sb-nav" href="#csec-e" onclick="jumpCardsTo('csec-e',event)">📋 Easy systems</a>
+    <a class="sb-nav" href="#csec-m" onclick="jumpCardsTo('csec-m',event)">📋 Medium systems</a>
+    <a class="sb-nav" href="#csec-h" onclick="jumpCardsTo('csec-h',event)">📋 Hard systems</a>
+    <div id="cards-sb-sys-list"></div>
+  </div>
+</nav>
+<div class="cards-main" id="cards-main">
 
-<div class="db-section">
+<div class="db-section" id="cards-db">
   <div class="db-hdr">
     <div class="db-hdr-title">Database Chooser</div>
     <div class="db-hdr-sub">When to reach for each database — with signal words and anti-patterns</div>
@@ -3272,15 +3384,6 @@ for speed: the feed can be rebuilt from Cassandra if Redis is wiped."</div>
   </div>
 </div>
 
-<div class="cards-topbar">
-  <span style="font-size:12px;font-weight:500;color:var(--text);white-space:nowrap">
-    26 systems</span>
-  <button class="dfb on" onclick="filterCards('all',this)">All</button>
-  <button class="dfb easy" onclick="filterCards('e',this)">Easy</button>
-  <button class="dfb med" onclick="filterCards('m',this)">Medium</button>
-  <button class="dfb hard" onclick="filterCards('h',this)">Hard</button>
-  <input type="text" id="cards-search" placeholder="Search systems…" oninput="searchCards(this.value)" style="margin-left:8px">
-</div>
 <div id="csec-e" class="cards-sec">Easy</div>
 <div class="cards-grid" id="cards-ge"></div>
 <div id="csec-m" class="cards-sec">Medium</div>
@@ -3301,7 +3404,9 @@ for speed: the feed can be rebuilt from Cassandra if Redis is wiped."</div>
   </div>
   <div class="site-footer-right">Eddy Hung · 2026</div>
 </footer>
-</div>
+</div><!-- /.cards-main -->
+</div><!-- /.cards-shell -->
+</div><!-- /#view-cards -->
 
 
 <script>
@@ -7749,12 +7854,84 @@ function scardSw(btn, id, tab){
   document.getElementById(id+'-'+tab).classList.add('on');
 }
 
-function renderCards(){
-  const volOrder=['Vol 1 · Ch.1','Vol 1 · Ch.4','Vol 1 · Ch.5','Vol 1 · Ch.6',
-    'Vol 1 · Ch.7','Vol 1 · Ch.8','Vol 1 · Ch.9','Vol 1 · Ch.10','Vol 1 · Ch.11',
-    'Vol 1 · Ch.12','Vol 1 · Ch.13','Vol 1 · Ch.14','Vol 1 · Ch.15',
-    'Vol 2 · Ch.1','Vol 2 · Ch.4','Vol 2 · Ch.11'];
+function renderCardsSidebar(){
+  const list=document.getElementById('cards-sb-sys-list');
+  if(!list) return;
+  const counts={e:0,m:0,h:0};
+  SYSTEMS.forEach(s=>counts[s.diff]++);
+  const cfbAll=document.getElementById('cfb-all');
+  const cfbE=document.getElementById('cfb-e');
+  const cfbM=document.getElementById('cfb-m');
+  const cfbH=document.getElementById('cfb-h');
+  if(cfbAll) cfbAll.textContent='All '+SYSTEMS.length;
+  if(cfbE) cfbE.textContent='Easy ×'+counts.e;
+  if(cfbM) cfbM.textContent='Medium ×'+counts.m;
+  if(cfbH) cfbH.textContent='Hard ×'+counts.h;
+  const labels={e:'Easy',m:'Medium',h:'Hard'};
+  let html='';
+  ['e','m','h'].forEach(d=>{
+    const items=SYSTEMS.map((s,i)=>({s,i})).filter(({s})=>s.diff===d);
+    if(!items.length) return;
+    html+='<div class="sb-section">'+labels[d]+'</div>';
+    items.forEach(({s})=>{
+      html+='<a class="sb-sys sb-'+d+'" data-diff="'+d+'" data-id="'+s.id+'" onclick="navToCard(\''+s.id+'\',event)">'+s.title+'</a>';
+    });
+  });
+  list.innerHTML=html;
+}
 
+function navToCard(id,e){
+  if(e) e.preventDefault();
+  const card=document.getElementById('card-'+id);
+  const main=document.getElementById('cards-main');
+  if(!card||!main) return;
+  if(card.classList.contains('hidden')){
+    filterCards('all',document.getElementById('cfb-all'));
+  }
+  document.querySelectorAll('#cards-sb-sys-list .sb-sys').forEach(a=>a.classList.remove('active'));
+  const link=document.querySelector('#cards-sb-sys-list .sb-sys[data-id="'+id+'"]');
+  if(link) link.classList.add('active');
+  const top=main.scrollTop+(card.getBoundingClientRect().top-main.getBoundingClientRect().top)-12;
+  main.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+  card.classList.add('scard-flash');
+  setTimeout(()=>card.classList.remove('scard-flash'),1200);
+  if(window.innerWidth<=768) toggleCardsSidebar(true);
+}
+
+function jumpCardsTo(id,e){
+  if(e) e.preventDefault();
+  const main=document.getElementById('cards-main');
+  const el=document.getElementById(id);
+  if(!main||!el) return;
+  const top=main.scrollTop+(el.getBoundingClientRect().top-main.getBoundingClientRect().top)-12;
+  main.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+  if(window.innerWidth<=768) toggleCardsSidebar(true);
+}
+
+function toggleCardsSidebar(forceClose){
+  const sb=document.getElementById('cards-sidebar');
+  const ov=document.getElementById('cards-sb-ov');
+  if(!sb) return;
+  if(forceClose===true) sb.classList.remove('open');
+  else sb.classList.toggle('open');
+  if(ov) ov.classList.toggle('open', sb.classList.contains('open'));
+}
+
+function cardsSbSearch(v){
+  searchCards(v);
+  const top=document.getElementById('cards-search');
+  if(top&&top.value!==v) top.value=v;
+}
+
+function syncCardsFiltButtons(d,btn){
+  document.querySelectorAll('#view-cards .sb-btn.sb-filt').forEach(b=>b.classList.remove('on'));
+  if(btn&&btn.classList.contains('sb-filt')){btn.classList.add('on');return;}
+  const map={all:'cfb-all',e:'cfb-e',m:'cfb-m',h:'cfb-h'};
+  const el=document.getElementById(map[d]||'cfb-all');
+  if(el) el.classList.add('on');
+}
+
+function renderCards(){
   const grouped={e:[],m:[],h:[]};
   SYSTEMS.forEach((s,i)=>{ grouped[s.diff].push({s,i}); });
 
@@ -7764,6 +7941,7 @@ function renderCards(){
   grouped.e.forEach(({s,i})=>{ const d=document.createElement('div'); d.innerHTML=renderCard(s,i); ge.appendChild(d.firstChild); });
   grouped.m.forEach(({s,i})=>{ const d=document.createElement('div'); d.innerHTML=renderCard(s,i); gm.appendChild(d.firstChild); });
   grouped.h.forEach(({s,i})=>{ const d=document.createElement('div'); d.innerHTML=renderCard(s,i); gh.appendChild(d.firstChild); });
+  renderCardsSidebar();
   window._cardsRendered=true;
   applyCardsFilter();
 }
@@ -7771,12 +7949,27 @@ function renderCards(){
 let _cardDiff='all', _cardSearch='';
 function filterCards(d,btn){
   _cardDiff=d;
-  document.querySelectorAll('.dfb').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
+  syncCardsFiltButtons(d,btn);
   applyCardsFilter();
+  const main=document.getElementById('cards-main');
+  if(!main) return;
+  const secMap={all:'csec-e',e:'csec-e',m:'csec-m',h:'csec-h'};
+  const hdr=document.getElementById(secMap[d]||'csec-e');
+  let target=hdr&&hdr.style.display!=='none'?hdr:null;
+  if(!target||d!=='all'){
+    const card=main.querySelector('.scard:not(.hidden)');
+    if(card) target=card;
+  }
+  if(target){
+    const top=main.scrollTop+(target.getBoundingClientRect().top-main.getBoundingClientRect().top)-12;
+    main.scrollTo({top:Math.max(0,top),behavior:'smooth'});
+  }
+  if(window.innerWidth<=768) toggleCardsSidebar(true);
 }
 function searchCards(v){
   _cardSearch=v.toLowerCase();
+  const sb=document.getElementById('cards-sb-srch');
+  if(sb&&sb.value!==v) sb.value=v;
   if(!window._cardsRendered){ renderCards(); }
   applyCardsFilter();
 }
@@ -7793,6 +7986,10 @@ function applyCardsFilter(){
     const grid=document.getElementById('cards-g'+d);
     if(sec) sec.style.display=show?'':'none';
     if(grid) grid.style.display=show?'':'none';
+  });
+  document.querySelectorAll('#cards-sb-sys-list .sb-sys').forEach(a=>{
+    const card=document.getElementById('card-'+a.dataset.id);
+    a.style.display=card&&card.classList.contains('hidden')?'none':'';
   });
 }
 
@@ -7814,8 +8011,9 @@ function switchView(id, btn) {
   if (bbgSearch) bbgSearch.style.display = id === 'bbg' ? '' : 'none';
   if(id==='cards'){
     if(!window._cardsRendered) renderCards();
-    // Focus the cards search input after a tick
-    setTimeout(()=>{ const inp=document.getElementById('cards-search'); if(inp) inp.focus(); }, 50);
+    setTimeout(()=>{ const inp=document.getElementById('cards-sb-srch'); if(inp) inp.focus(); }, 50);
+  } else {
+    toggleCardsSidebar(true);
   }
 }
 function toggleSubnav(item) {
