@@ -26,6 +26,7 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 
 
+
 ## Severity legend
 
 | Badge | Level | When interviewers probe here |
@@ -584,6 +585,9 @@ flowchart TD
 
 ### 🔴 Thundering herd
 
+> **💬 Problem:** What happens when your cache TTL expires and thousands of clients hit the database at once?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Add caching — TTL expires, everyone hits the DB.
 >
@@ -600,6 +604,9 @@ flowchart TD
 📊 **Visual:** [Thundering herd](interview-quick-fire.html#thundering-herd)
 
 ### 🔴 Cache stampede (dogpile)
+
+> **💬 Problem:** An expensive cached computation expires — how do you stop every request from re-running it simultaneously?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Cache the expensive query with a fixed TTL.
@@ -618,6 +625,9 @@ flowchart TD
 
 ### 🔴 Retry storm
 
+> **💬 Problem:** Clients retry on timeout, the service slows down, and retries multiply — how do you break the loop?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Retry on any timeout — clients will eventually succeed.
 >
@@ -634,6 +644,9 @@ flowchart TD
 📊 **Visual:** [Retry storm](interview-quick-fire.html#retry-storm)
 
 ### 🔴 Metastable failure
+
+> **💬 Problem:** The system was stable at 70% load but collapses at 80% and cannot recover — what is happening?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Wait for autoscale; retries will fix it.
@@ -652,6 +665,9 @@ flowchart TD
 
 ### 🔴 Hot partition / hot key
 
+> **💬 Problem:** One Redis key or DB partition gets 100× normal traffic — how do you handle it?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Scale Redis vertically when one key gets hot.
 >
@@ -668,6 +684,9 @@ flowchart TD
 📊 **Visual:** [Hot key](interview-quick-fire.html#hot-key) · [Fan-out hybrid](interview-quick-fire.html#fan-out)
 
 ### 🔴 Split brain
+
+> **💬 Problem:** Your DB primary fails over but the old primary still accepts writes — how do you prevent split brain?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Promote replica on primary failure — keep serving writes.
@@ -686,6 +705,9 @@ flowchart TD
 
 ### 🔴 Poison message
 
+> **💬 Problem:** One bad queue message crashes every consumer — how do you isolate it without stopping the pipeline?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Restart the consumer until the message processes.
 >
@@ -702,6 +724,9 @@ flowchart TD
 📊 **Visual:** [Poison message](interview-quick-fire.html#poison-message)
 
 ### 🔴 Head-of-line blocking
+
+> **💬 Problem:** One slow message blocks the entire queue — how do you prevent head-of-line blocking?
+
 
 > [!CAUTION]
 > **🔴 Weak** — One worker pool for all job types.
@@ -720,6 +745,9 @@ flowchart TD
 
 ### 🔴 N+1 queries
 
+> **💬 Problem:** Your API runs one DB query per item in a list — how do you fix the N+1 problem?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Load related rows in a loop — simple and correct.
 >
@@ -736,6 +764,9 @@ flowchart TD
 📊 **Visual:** [N+1 vs batch](interview-quick-fire.html#n1-batch)
 
 ### 🔴 Connection pool exhaustion
+
+> **💬 Problem:** Under load your app runs out of database connections — what is going wrong?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Increase max connections on the database.
@@ -754,6 +785,9 @@ flowchart TD
 
 ### 🔴 Replica lag / stale read
 
+> **💬 Problem:** A user updates data but immediately reads the old value from a replica — how do you handle lag?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Add read replicas and route all reads there.
 >
@@ -770,6 +804,9 @@ flowchart TD
 📊 **Visual:** [Replica lag](interview-quick-fire.html#replica-lag)
 
 ### 🔴 Slow node (straggler)
+
+> **💬 Problem:** One node in a scatter-gather query is 10× slower — how do you limit tail latency?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Wait for the slowest shard — correctness first.
@@ -788,6 +825,9 @@ flowchart TD
 
 ### 🔴 Dual-write problem
 
+> **💬 Problem:** You write to the database and search index separately and they drift — how do you keep them in sync?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Write to DB and cache in the same request handler.
 >
@@ -804,6 +844,9 @@ flowchart TD
 📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
 ### 🔴 Circular dependency / retry loop
+
+> **💬 Problem:** Service A calls B, B calls A, and retries create a loop — how do you break it?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Service A calls B calls A with retries enabled.
@@ -827,6 +870,9 @@ flowchart TD
 
 ### 🟠 Handle traffic spikes
 
+> **💬 Problem:** Traffic spikes 10× during a flash event — how do you absorb it without downtime?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Autoscale app servers; the DB will keep up.
 >
@@ -841,6 +887,9 @@ flowchart TD
 **Example:** *Shopify Black Friday — checkout writes queued; read path scaled horizontally.*
 
 ### 🟠 Eliminate single point of failure
+
+> **💬 Problem:** Walk me through how you would remove single points of failure in this design.
+
 
 > [!CAUTION]
 > **🔴 Weak** — Run two of everything in one AZ.
@@ -857,6 +906,9 @@ flowchart TD
 
 ### 🟠 DB primary fails
 
+> **💬 Problem:** Your database primary goes down — what is your failover and recovery plan?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Manual failover when someone pages you.
 >
@@ -871,6 +923,9 @@ flowchart TD
 **Example:** *Payments — sync replication only; accept unavailable during AZ failure, not wrong balance.*
 
 ### 🟠 Cascading failure
+
+> **💬 Problem:** One service failure takes down everything downstream — how do you stop cascading failures?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Retry until downstream recovers.
@@ -889,6 +944,9 @@ flowchart TD
 
 ### 🟠 Regional outage
 
+> **💬 Problem:** An entire cloud region goes offline — how does your system stay available?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Multi-region active-active from day one.
 >
@@ -903,6 +961,9 @@ flowchart TD
 **Example:** *S3 cross-region replication for media; API active-passive with Route53 health checks.*
 
 ### 🟠 Zero-downtime deploy
+
+> **💬 Problem:** How do you deploy new code without taking the service offline?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Rolling restart — users won't notice brief errors.
@@ -924,6 +985,9 @@ flowchart TD
 
 ### 🟢 Reduce DB read load
 
+> **💬 Problem:** Reads are hammering your database — how do you reduce read load on the primary?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Put Redis in front of the database.
 >
@@ -940,6 +1004,9 @@ flowchart TD
 📊 **Visual:** [Cache-aside](interview-quick-fire.html#cache-aside)
 
 ### 🟢 Hot key / viral content
+
+> **💬 Problem:** A viral post makes one cache key receive millions of reads per second — what do you do?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Bigger Redis instance when a celebrity posts.
@@ -958,6 +1025,9 @@ flowchart TD
 
 ### 🟢 Stale cache after update
 
+> **💬 Problem:** Users see stale data after an update because the cache was not invalidated — how do you fix it?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Delete cache key on every write — always consistent.
 >
@@ -972,6 +1042,9 @@ flowchart TD
 **Example:** *Profile name change — `DEL user:123` in Redis on PG commit.*
 
 ### 🟢 Reduce global read latency
+
+> **💬 Problem:** Users in Asia see 800ms latency reading from your US database — how do you reduce global latency?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Deploy one big CDN in the US — covers everyone.
@@ -988,6 +1061,9 @@ flowchart TD
 
 ### 🟢 Pagination at scale
 
+> **💬 Problem:** OFFSET pagination gets slower as users page deeper — how do you paginate at scale?
+
+
 > [!CAUTION]
 > **🔴 Weak** — OFFSET/LIMIT — page 10,000 is fine if indexed.
 >
@@ -1002,6 +1078,9 @@ flowchart TD
 **Example:** *Twitter timelines — snowflake ID as cursor, not page numbers.*
 
 ### 🟢 Search across billions of records
+
+> **💬 Problem:** How would you build full-text search across billions of documents?
+
 
 > [!CAUTION]
 > **🔴 Weak** — SELECT * WHERE title LIKE '%query%'.
@@ -1019,6 +1098,9 @@ flowchart TD
 📊 **Visual:** [Dual-write vs outbox](interview-quick-fire.html#dual-write)
 
 ### 🟢 Autocomplete / typeahead
+
+> **💬 Problem:** Design autocomplete that returns suggestions within 50ms as the user types.
+
 
 > [!CAUTION]
 > **🔴 Weak** — Prefix scan on the users table on every keystroke.
@@ -1040,6 +1122,9 @@ flowchart TD
 
 ### 🟢 Scale writes past single DB
 
+> **💬 Problem:** Write throughput exceeds what one database can handle — how do you scale writes?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Shard later when Postgres is full.
 >
@@ -1054,6 +1139,9 @@ flowchart TD
 **Example:** *Instagram shards media metadata by `user_id` when single PG master saturated.*
 
 ### 🟠 High write burst (flash sale)
+
+> **💬 Problem:** A flash sale creates a sudden 50× write spike — how do you handle it?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Queue everyone in one mutex — fairness first.
@@ -1072,6 +1160,9 @@ flowchart TD
 
 ### 🟢 Idempotent writes
 
+> **💬 Problem:** Network retries cause duplicate writes — how do you make writes idempotent?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Check if row exists, then INSERT — good enough.
 >
@@ -1088,6 +1179,9 @@ flowchart TD
 📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency)
 
 ### 🟠 Prevent double booking
+
+> **💬 Problem:** Two users book the last hotel room at the same time — how do you prevent double booking?
+
 
 > [!CAUTION]
 > **🔴 Weak** — SELECT then UPDATE in application code.
@@ -1106,6 +1200,9 @@ flowchart TD
 
 ### 🟢 Distributed counter
 
+> **💬 Problem:** You need a globally accurate view count across millions of servers — how do you implement it?
+
+
 > [!CAUTION]
 > **🔴 Weak** — INCR one global Redis key for all traffic.
 >
@@ -1120,6 +1217,9 @@ flowchart TD
 **Example:** *YouTube view counter — approximate counts OK; HyperLogLog or batched increments.*
 
 ### 🟢 Unique ID at scale
+
+> **💬 Problem:** You need unique IDs at 10,000 per millisecond — what approach do you use?
+
 
 > [!CAUTION]
 > **🔴 Weak** — UUID v4 everywhere — collisions are negligible.
@@ -1141,6 +1241,9 @@ flowchart TD
 
 ### 🟣 Strong vs eventual consistency
 
+> **💬 Problem:** When would you choose strong consistency versus eventual consistency?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Always use strong consistency — users hate stale data.
 >
@@ -1156,6 +1259,9 @@ flowchart TD
 
 ### 🟣 Guarantee exactly-once
 
+> **💬 Problem:** How do you guarantee exactly-once processing in a distributed pipeline?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Kafka exactly-once semantics solve it end-to-end.
 >
@@ -1170,6 +1276,9 @@ flowchart TD
 **Example:** *Payment webhook — store `event_id` before crediting wallet.*
 
 ### 🟣 Cross-service transaction
+
+> **💬 Problem:** Payment requires debiting one service and crediting another — how do you handle the transaction?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Two-phase commit across all microservices.
@@ -1187,6 +1296,9 @@ flowchart TD
 📊 **Visual:** [Saga](interview-quick-fire.html#saga)
 
 ### 🟣 Read-your-writes
+
+> **💬 Problem:** After a user posts, their feed does not show it — how do you guarantee read-your-writes?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Sticky sessions to any random replica.
@@ -1210,6 +1322,9 @@ flowchart TD
 
 ### 🔴 Payment correctness
 
+> **💬 Problem:** A payment timeout causes a client retry — how do you prevent double charging?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Charge the card; if timeout, retry the charge.
 >
@@ -1226,6 +1341,9 @@ flowchart TD
 📊 **Visual:** [Idempotency](interview-quick-fire.html#idempotency) · [Saga](interview-quick-fire.html#saga)
 
 ### 🔴 Inventory / wallet balance
+
+> **💬 Problem:** How do you keep inventory or wallet balances correct under concurrent updates?
+
 
 > [!CAUTION]
 > **🔴 Weak** — UPDATE balance = balance - amount — SQL is atomic.
@@ -1249,6 +1367,9 @@ flowchart TD
 
 ### 🟢 Fan-out to millions of followers
 
+> **💬 Problem:** A user with 50M followers posts — how do you fan out to follower feeds?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Push every post to every follower's feed on write.
 >
@@ -1266,6 +1387,9 @@ flowchart TD
 
 ### 🟢 WebSocket at scale
 
+> **💬 Problem:** How do you scale WebSocket connections to millions of concurrent users?
+
+
 > [!CAUTION]
 > **🔴 Weak** — One giant WebSocket server holds all connections.
 >
@@ -1280,6 +1404,9 @@ flowchart TD
 **Example:** *Slack — channel-based pub/sub; co-locate busy channels where possible.*
 
 ### 🟢 Push notifications at scale
+
+> **💬 Problem:** How do you deliver push notifications to 100M devices reliably?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Loop over all device tokens and send synchronously.
@@ -1301,6 +1428,9 @@ flowchart TD
 
 ### 🟢 Decouple services
 
+> **💬 Problem:** Two services are tightly coupled and one outage takes down the other — how do you decouple them?
+
+
 > [!CAUTION]
 > **🔴 Weak** — REST sync call chain between every service.
 >
@@ -1317,6 +1447,9 @@ flowchart TD
 📊 **Visual:** [Poison message](interview-quick-fire.html#poison-message) *(queue + DLQ pattern)*
 
 ### 🟢 Webhook delivery
+
+> **💬 Problem:** You must deliver webhooks to third parties with retries and idempotency — how do you design it?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Fire-and-forget HTTP POST from the request path.
@@ -1340,6 +1473,9 @@ flowchart TD
 
 ### 🟢 Store large files
 
+> **💬 Problem:** How do you store and serve large files (images, PDFs, backups) at scale?
+
+
 > [!CAUTION]
 > **🔴 Weak** — Multipart upload to S3 in one HTTP request.
 >
@@ -1354,6 +1490,9 @@ flowchart TD
 **Example:** *Dropbox — metadata service + direct S3 chunk upload.*
 
 ### 🟢 Video streaming
+
+> **💬 Problem:** Design video upload, transcoding, and streaming for YouTube-scale traffic.
+
 
 > [!CAUTION]
 > **🔴 Weak** — Serve the original 4K file — clients buffer.
@@ -1375,6 +1514,9 @@ flowchart TD
 
 ### 🟠 Rate limiting
 
+> **💬 Problem:** Design a rate limiter for your public API.
+
+
 > [!CAUTION]
 > **🔴 Weak** — Return 429 when count > 100 — no per-user fairness.
 >
@@ -1389,6 +1531,9 @@ flowchart TD
 **Example:** *GitHub API — `X-RateLimit-Remaining` headers.*
 
 ### 🟠 DDoS / abuse
+
+> **💬 Problem:** Your API is being abused or DDoS'd — how do you protect it?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Block bad IPs in application code after they hit us.
@@ -1410,6 +1555,9 @@ flowchart TD
 
 ### 🟢 Nearby search (Yelp, Uber)
 
+> **💬 Problem:** Find all restaurants or drivers within 5km of a user — how do you implement nearby search?
+
+
 > [!CAUTION]
 > **🔴 Weak** — PostGIS radius query on every map pan.
 >
@@ -1430,6 +1578,9 @@ flowchart TD
 
 ### 🔵 Debug production incidents
 
+> **💬 Problem:** Production is degraded and the cause is unclear — walk me through your incident response.
+
+
 > [!CAUTION]
 > **🔴 Weak** — SSH in and tail logs on one server.
 >
@@ -1444,6 +1595,9 @@ flowchart TD
 **Example:** *p99 spike — trace shows one shard ES query 2s; others 20ms.*
 
 ### 🔵 Cardinality explosion (metrics)
+
+> **💬 Problem:** Your metrics bill exploded because someone used user_id as a label — how do you prevent it?
+
 
 > [!CAUTION]
 > **🔴 Weak** — Tag every span with user_id for rich dashboards.

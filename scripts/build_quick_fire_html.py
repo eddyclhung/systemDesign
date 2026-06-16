@@ -84,6 +84,60 @@ PATTERN_OVERRIDE = {
     "Retry storm": "critical",
 }
 
+PROBLEM_STATEMENTS: dict[str, str] = {
+    "Thundering herd": "What happens when your cache TTL expires and thousands of clients hit the database at once?",
+    "Cache stampede (dogpile)": "An expensive cached computation expires — how do you stop every request from re-running it simultaneously?",
+    "Retry storm": "Clients retry on timeout, the service slows down, and retries multiply — how do you break the loop?",
+    "Metastable failure": "The system was stable at 70% load but collapses at 80% and cannot recover — what is happening?",
+    "Hot partition / hot key": "One Redis key or DB partition gets 100× normal traffic — how do you handle it?",
+    "Split brain": "Your DB primary fails over but the old primary still accepts writes — how do you prevent split brain?",
+    "Poison message": "One bad queue message crashes every consumer — how do you isolate it without stopping the pipeline?",
+    "Head-of-line blocking": "One slow message blocks the entire queue — how do you prevent head-of-line blocking?",
+    "N+1 queries": "Your API runs one DB query per item in a list — how do you fix the N+1 problem?",
+    "Connection pool exhaustion": "Under load your app runs out of database connections — what is going wrong?",
+    "Replica lag / stale read": "A user updates data but immediately reads the old value from a replica — how do you handle lag?",
+    "Slow node (straggler)": "One node in a scatter-gather query is 10× slower — how do you limit tail latency?",
+    "Dual-write problem": "You write to the database and search index separately and they drift — how do you keep them in sync?",
+    "Circular dependency / retry loop": "Service A calls B, B calls A, and retries create a loop — how do you break it?",
+    "Handle traffic spikes": "Traffic spikes 10× during a flash event — how do you absorb it without downtime?",
+    "Eliminate single point of failure": "Walk me through how you would remove single points of failure in this design.",
+    "DB primary fails": "Your database primary goes down — what is your failover and recovery plan?",
+    "Cascading failure": "One service failure takes down everything downstream — how do you stop cascading failures?",
+    "Regional outage": "An entire cloud region goes offline — how does your system stay available?",
+    "Zero-downtime deploy": "How do you deploy new code without taking the service offline?",
+    "Reduce DB read load": "Reads are hammering your database — how do you reduce read load on the primary?",
+    "Hot key / viral content": "A viral post makes one cache key receive millions of reads per second — what do you do?",
+    "Stale cache after update": "Users see stale data after an update because the cache was not invalidated — how do you fix it?",
+    "Reduce global read latency": "Users in Asia see 800ms latency reading from your US database — how do you reduce global latency?",
+    "Pagination at scale": "OFFSET pagination gets slower as users page deeper — how do you paginate at scale?",
+    "Search across billions of records": "How would you build full-text search across billions of documents?",
+    "Autocomplete / typeahead": "Design autocomplete that returns suggestions within 50ms as the user types.",
+    "Scale writes past single DB": "Write throughput exceeds what one database can handle — how do you scale writes?",
+    "High write burst (flash sale)": "A flash sale creates a sudden 50× write spike — how do you handle it?",
+    "Idempotent writes": "Network retries cause duplicate writes — how do you make writes idempotent?",
+    "Prevent double booking": "Two users book the last hotel room at the same time — how do you prevent double booking?",
+    "Distributed counter": "You need a globally accurate view count across millions of servers — how do you implement it?",
+    "Unique ID at scale": "You need unique IDs at 10,000 per millisecond — what approach do you use?",
+    "Strong vs eventual consistency": "When would you choose strong consistency versus eventual consistency?",
+    "Guarantee exactly-once": "How do you guarantee exactly-once processing in a distributed pipeline?",
+    "Cross-service transaction": "Payment requires debiting one service and crediting another — how do you handle the transaction?",
+    "Read-your-writes": "After a user posts, their feed does not show it — how do you guarantee read-your-writes?",
+    "Payment correctness": "A payment timeout causes a client retry — how do you prevent double charging?",
+    "Inventory / wallet balance": "How do you keep inventory or wallet balances correct under concurrent updates?",
+    "Fan-out to millions of followers": "A user with 50M followers posts — how do you fan out to follower feeds?",
+    "WebSocket at scale": "How do you scale WebSocket connections to millions of concurrent users?",
+    "Push notifications at scale": "How do you deliver push notifications to 100M devices reliably?",
+    "Decouple services": "Two services are tightly coupled and one outage takes down the other — how do you decouple them?",
+    "Webhook delivery": "You must deliver webhooks to third parties with retries and idempotency — how do you design it?",
+    "Store large files": "How do you store and serve large files (images, PDFs, backups) at scale?",
+    "Video streaming": "Design video upload, transcoding, and streaming for YouTube-scale traffic.",
+    "Rate limiting": "Design a rate limiter for your public API.",
+    "DDoS / abuse": "Your API is being abused or DDoS'd — how do you protect it?",
+    "Nearby search (Yelp, Uber)": "Find all restaurants or drivers within 5km of a user — how do you implement nearby search?",
+    "Debug production incidents": "Production is degraded and the cause is unclear — walk me through your incident response.",
+    "Cardinality explosion (metrics)": "Your metrics bill exploded because someone used user_id as a label — how do you prevent it?",
+}
+
 PATTERN_SECTIONS: list[tuple[str, list[str]]] = [
     (
         "Classic failure modes & distributed pitfalls",
@@ -287,7 +341,14 @@ def parse_patterns(body: str) -> list[dict]:
         title = re.sub(r"^[🔴🟠🟣🟢🔵]\s*", "", title)
         title = re.sub(r"^Diagram ·\s*", "Diagram · ", title)  # keep diagram titles distinct
         rest = "\n".join(lines[1:])
-        weak = staff = staff_plus = trade = example = visual = ""
+        weak = staff = staff_plus = trade = example = visual = problem = ""
+        m = re.search(
+            r"\*\*(?:💬 )?Problem:\*\*\s*(.+?)(?=\n> \[!|\n\*\*🔴|\n\*\*Trade|\n📊|\n---|\Z)",
+            rest,
+            re.S,
+        )
+        if m:
+            problem = re.sub(r"\n> ?", " ", m.group(1)).strip()
         m = re.search(r"\*\*🔴 Weak\*\* —\s*(.+?)(?=\n> \[!|\n\*\*Trade|\n📊|\n---|\Z)", rest, re.S)
         if m:
             weak = re.sub(r"\n> ?", " ", m.group(1)).strip()
@@ -334,10 +395,15 @@ def parse_patterns(body: str) -> list[dict]:
             visual = m.group(1).strip()
         if not staff or title.startswith("Diagram ·") or title.startswith("Pattern →"):
             continue
+        if not problem:
+            problem = PROBLEM_STATEMENTS.get(
+                title, f"How would you handle {title.lower()} in a large-scale system?"
+            )
         patterns.append(
             {
                 "title": title,
                 "slug": slugify(title),
+                "problem": problem,
                 "weak": weak,
                 "staff": staff,
                 "staff_plus": staff_plus,
@@ -618,6 +684,11 @@ def enrich_markdown(md: str, sections: list[dict]) -> str:
             if f"### {sev_p['emoji']} {p['title']}\n" not in md:
                 md = md.replace(f"### {p['title']}\n", f"### {sev_p['emoji']} {p['title']}\n", 1)
 
+            prob = p.get("problem", "")
+            header = f"### {sev_p['emoji']} {p['title']}\n"
+            if prob and header in md and "**💬 Problem:**" not in md.split(header, 1)[1].split("\n### ", 1)[0]:
+                md = md.replace(header, f"{header}\n> **💬 Problem:** {prob}\n\n", 1)
+
             if not p["staff"]:
                 continue
             if f"**🔴 Weak** —" in md and f"### {sev_p['emoji']} {p['title']}" in md:
@@ -672,6 +743,7 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
                 "patterns": [
                     {
                         **p,
+                        "problem_html": md_inline(p.get("problem", "")),
                         "weak_html": md_inline(p.get("weak", "")),
                         "staff_html": md_inline(p["staff"]),
                         "staff_plus_html": md_inline(p.get("staff_plus", "")),
@@ -801,6 +873,7 @@ h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .callout.important{{background:var(--important-bg);border-color:var(--important-bdr)}}
 .callout.pattern{{background:var(--pattern-bg);border-color:var(--pattern-bdr)}}
 .callout.prep{{background:var(--prep-bg);border-color:var(--prep-bdr)}}
+.callout.problem{{background:var(--prep-bg);border-color:var(--prep-bdr);font-style:italic}}
 .visual{{margin:0 16px 14px;font-size:.82rem;color:var(--muted)}}
 .visual a{{font-weight:500}}
 .sb-link{{display:block;padding:5px 10px;font-size:.8rem;color:var(--muted);text-decoration:none;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
@@ -954,7 +1027,7 @@ function render() {{
   DATA.forEach(sec => {{
     const patterns = sec.patterns.filter(p => {{
       if (!showAll && !active.includes(p.severity)) return false;
-      const hay = (p.title + ' ' + (p.weak||'') + ' ' + p.staff + ' ' + p.trade).toLowerCase();
+      const hay = (p.title + ' ' + (p.problem||'') + ' ' + (p.weak||'') + ' ' + p.staff + ' ' + p.trade).toLowerCase();
       return !q || hay.includes(q);
     }});
     if (!patterns.length) return;
@@ -986,6 +1059,7 @@ function render() {{
           <span class="card-chev">▶</span>
         </div>
         <div class="card-body">
+          ${{p.problem_html ? `<div class="callout problem"><strong>💬 Problem</strong>${{p.problem_html}}</div>` : ''}}
           ${{p.weak_html ? `<div class="callout critical"><strong>🔴 Weak</strong>${{p.weak_html}}</div>` : ''}}
           <div class="callout ${{p.severity}}"><strong>🟡 Strong</strong>${{p.staff_html}}</div>
           ${{p.staff_plus_html ? `<div class="callout pattern"><strong>🟢 Staff+</strong>${{p.staff_plus_html}}</div>` : ''}}
