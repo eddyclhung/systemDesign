@@ -24,6 +24,7 @@ jobs:
         run: |
           python3 scripts/build_prerendered_html.py --pages-deploy
           python3 scripts/build_github_view.py
+          python3 scripts/build_ai_interview_html.py
           python3 -c "import re,sys; t=open('cheatSheet/system_design_cheatsheet_v14.html').read(); n=len(re.findall(r'id=\"card-\d+\"', t)); print(f'v14 card check: {n}'); sys.exit(0 if n==40 else 1)"
           python3 scripts/prepare_pages_artifact.py
 

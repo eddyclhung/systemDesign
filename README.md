@@ -29,6 +29,7 @@ flowchart TB
     INDEX --> v10
     INDEX --> v15
     INDEX --> eda
+    INDEX --> ai
 
     v10 --> bbg["ByteByteGo Reference"]
     v10 --> cards["System Cards"]
@@ -46,11 +47,13 @@ flowchart TB
     v15 --> s40["40 systems · 4E / 18M / 18H"]
 
     eda --> edaq["26 EDA questions · 78 follow-ups · 12 diagrams"]
+    ai["AI_Interview_Prep.html"] --> aiq["RAG · Agents · Evals · Player Service"]
 
     goal{{"What's your goal?"}}
     goal -->|"Study ByteByteGo"| v10
     goal -->|"Practice interviews"| v15
     goal -->|"Drill Kafka / EDA"| eda
+    goal -->|"AI eval / take-home"| ai
 ```
 
 ## Files
@@ -59,6 +62,8 @@ flowchart TB
 |------|-------------|
 | [`cheatSheet/index.html`](cheatSheet/index.html) | Landing page — pick v10, v15, or EDA |
 | [`cheatSheet/EDA_Interview_Question_Bank_Complete.html`](cheatSheet/EDA_Interview_Question_Bank_Complete.html) | **EDA interview bank** — 26 questions, follow-ups, diagrams |
+| [`cheatSheet/AI_Interview_Prep.html`](cheatSheet/AI_Interview_Prep.html) | **AI interview prep** — RAG, agents, hallucination handling (Player Service) |
+| [`cheatSheet/AI_TOPICS_INTERVIEW_PREP.md`](cheatSheet/AI_TOPICS_INTERVIEW_PREP.md) | AI prep source markdown |
 | [`cheatSheet/github/v15/index.md`](cheatSheet/github/v15/index.md) | **v15 on GitHub** — Markdown (renders in repo browser) |
 | [`cheatSheet/system_design_cheatsheet_v15_github.html`](cheatSheet/system_design_cheatsheet_v15_github.html) | **v15 HTML** — pre-rendered for Pages / html-preview |
 | [`cheatSheet/VIEW_ON_GITHUB.md`](cheatSheet/VIEW_ON_GITHUB.md) | **Viewing guide** — what works where |
@@ -77,6 +82,7 @@ open cheatSheet/index.html
 open cheatSheet/system_design_cheatsheet_v14.html
 open cheatSheet/SystemDesign_Complete_v10.html
 open cheatSheet/EDA_Interview_Question_Bank_Complete.html
+open cheatSheet/AI_Interview_Prep.html
 ```
 
 Validate card data after edits:
