@@ -30,6 +30,7 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 
 
+
 ## Severity legend
 
 | Badge | Level | When interviewers probe here |

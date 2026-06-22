@@ -412,12 +412,13 @@ def parse_patterns(body: str) -> list[dict]:
         if m:
             trade = re.sub(r"\n> ?", " ", m.group(1)).strip()
         m = re.search(
-            r"(?:^|\n)>?\s*\*\*Example:\*\*\s*(.+?)(?=\n\n📊|\n---|\n### |\Z)",
+            r"(?:^|\n)>?\s*\*\*Example:\*\*\s*(.+?)(?=\n\n```|\n```|\n\n📊|\n---|\n### |\Z)",
             rest,
             re.S,
         )
         if m:
             example = re.sub(r"\n> ?", " ", m.group(1)).strip()
+            example = re.sub(r"```java[\s\S]*?```", "", example).strip()
         m = re.search(r"📊 \*\*Visual:\*\*\s*(.+)", rest)
         if m:
             visual = m.group(1).strip()
@@ -906,7 +907,7 @@ h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .callout.pattern{{background:var(--pattern-bg);border-color:var(--pattern-bdr)}}
 .callout.prep{{background:var(--prep-bg);border-color:var(--prep-bdr)}}
 .callout.problem{{background:var(--prep-bg);border-color:var(--prep-bdr);font-style:italic}}
-.qf-java-wrap{{margin:4px 16px 14px}}
+.qf-java-wrap{{margin:10px 0 0}}
 .qf-java-label{{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--prep-bdr);margin:14px 0 6px}}
 .qf-java-wrap .qf-java-label:first-child{{margin-top:0}}
 .qf-java{{font-family:var(--mono);font-size:.72rem;line-height:1.55;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.08);padding:12px 14px;margin:0 0 10px;border-radius:8px;overflow-x:auto;white-space:pre;color:var(--text);tab-size:4}}
@@ -1103,8 +1104,7 @@ function render() {{
           <div class="callout ${{p.severity}}"><strong>🟡 Strong</strong>${{p.staff_html}}</div>
           ${{p.staff_plus_html ? `<div class="callout pattern"><strong>🟢 Staff+</strong>${{p.staff_plus_html}}</div>` : ''}}
           <div class="callout ${{p.severity}}" style="opacity:.92"><strong>Trade-offs</strong>${{p.trade_html}}</div>
-          <div class="callout ${{p.severity}}" style="opacity:.85"><strong>Example</strong>${{p.example_html}}</div>
-          ${{p.java_html ? p.java_html : ''}}
+          <div class="callout ${{p.severity}}" style="opacity:.85"><strong>Example</strong>${{p.example_html}}${{p.java_html ? p.java_html : ''}}</div>
           ${{p.visual_html ? `<div class="visual">📊 <strong>Visual:</strong> ${{p.visual_html}}</div>` : ''}}
         </div>`;
       card.querySelector('.card-hdr').onclick = () => card.classList.toggle('open');
