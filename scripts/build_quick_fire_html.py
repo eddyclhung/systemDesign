@@ -328,6 +328,31 @@ def reorganize_pattern_sections(md: str) -> str:
     return out + after.lstrip()
 
 
+def parse_java_blocks(rest: str) -> list[dict]:
+    blocks = []
+    for m in re.finditer(r"```java\n(.*?)```", rest, re.S):
+        code = m.group(1).strip("\n")
+        title = ""
+        lines = code.split("\n")
+        if lines and lines[0].startswith("//"):
+            title = lines[0][2:].strip()
+            code = "\n".join(lines[1:]).strip("\n")
+        blocks.append({"title": title, "code": code})
+    return blocks
+
+
+def render_java_html(blocks: list[dict]) -> str:
+    if not blocks:
+        return ""
+    parts = ['<div class="qf-java-wrap">']
+    for b in blocks:
+        if b["title"]:
+            parts.append(f'<div class="qf-java-label">{html.escape(b["title"])}</div>')
+        parts.append(f'<pre class="qf-java"><code>{html.escape(b["code"])}</code></pre>')
+    parts.append("</div>")
+    return "".join(parts)
+
+
 def slugify(title: str) -> str:
     s = title.lower().strip()
     s = re.sub(r"[^\w\s-]", "", s)
@@ -396,8 +421,7 @@ def parse_patterns(body: str) -> list[dict]:
         m = re.search(r"📊 \*\*Visual:\*\*\s*(.+)", rest)
         if m:
             visual = m.group(1).strip()
-        m = re.search(r"```java\n(.*?)```", rest, re.S)
-        java_code = m.group(1).strip() if m else ""
+        java_blocks = parse_java_blocks(rest)
         if not staff or title.startswith("Diagram ·") or title.startswith("Pattern →"):
             continue
         if not problem:
@@ -415,7 +439,7 @@ def parse_patterns(body: str) -> list[dict]:
                 "trade": trade,
                 "example": example,
                 "visual": visual,
-                "java": java_code,
+                "java_blocks": java_blocks,
             }
         )
     return patterns
@@ -756,7 +780,8 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
                         "trade_html": md_inline(p["trade"]),
                         "example_html": md_inline(p["example"]),
                         "visual_html": rewrite_visual_html(p["visual"]),
-                        "java_html": html.escape(p.get("java", "")) if p.get("java") else "",
+                        "java_html": render_java_html(p.get("java_blocks", [])),
+                        "java": "\n".join(b["code"] for b in p.get("java_blocks", [])),
                     }
                     for p in sec["patterns"]
                 ],
@@ -881,8 +906,13 @@ h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .callout.pattern{{background:var(--pattern-bg);border-color:var(--pattern-bdr)}}
 .callout.prep{{background:var(--prep-bg);border-color:var(--prep-bdr)}}
 .callout.problem{{background:var(--prep-bg);border-color:var(--prep-bdr);font-style:italic}}
-.qf-java{{font-family:var(--mono);font-size:.72rem;line-height:1.5;background:rgba(0,0,0,.06);padding:12px 14px;margin:0 16px 14px;border-radius:8px;overflow-x:auto;white-space:pre;color:var(--text)}}
-html[data-theme="dark"] .qf-java{{background:rgba(255,255,255,.06)}}
+.qf-java-wrap{{margin:4px 16px 14px}}
+.qf-java-label{{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--prep-bdr);margin:14px 0 6px}}
+.qf-java-wrap .qf-java-label:first-child{{margin-top:0}}
+.qf-java{{font-family:var(--mono);font-size:.72rem;line-height:1.55;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.08);padding:12px 14px;margin:0 0 10px;border-radius:8px;overflow-x:auto;white-space:pre;color:var(--text);tab-size:4}}
+.qf-java:last-child{{margin-bottom:0}}
+.qf-java code{{font-family:inherit;font-size:inherit;background:none;padding:0;border-radius:0;display:block}}
+html[data-theme="dark"] .qf-java{{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}}
 .visual{{margin:0 16px 14px;font-size:.82rem;color:var(--muted)}}
 .visual a{{font-weight:500}}
 .sb-link{{display:block;padding:5px 10px;font-size:.8rem;color:var(--muted);text-decoration:none;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
@@ -1074,7 +1104,7 @@ function render() {{
           ${{p.staff_plus_html ? `<div class="callout pattern"><strong>🟢 Staff+</strong>${{p.staff_plus_html}}</div>` : ''}}
           <div class="callout ${{p.severity}}" style="opacity:.92"><strong>Trade-offs</strong>${{p.trade_html}}</div>
           <div class="callout ${{p.severity}}" style="opacity:.85"><strong>Example</strong>${{p.example_html}}</div>
-          ${{p.java_html ? `<pre class="qf-java"><code>${{p.java_html}}</code></pre>` : ''}}
+          ${{p.java_html ? p.java_html : ''}}
           ${{p.visual_html ? `<div class="visual">📊 <strong>Visual:</strong> ${{p.visual_html}}</div>` : ''}}
         </div>`;
       card.querySelector('.card-hdr').onclick = () => card.classList.toggle('open');

@@ -29,6 +29,7 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 
 
+
 ## Severity legend
 
 | Badge | Level | When interviewers probe here |
@@ -1219,69 +1220,81 @@ flowchart TD
 **Example:** *Concert on-sale: User A wants [101,102,103], User B wants [102,103,104]. Unordered `FOR UPDATE` deadlocks in prod after first VACUUM; `ORDER BY id` + `FOR NO KEY UPDATE` serializes safely. Reject with 409 beats double-sell.*
 
 ```java
-// BROKEN — read-check-write gap under READ COMMITTED
+// Broken — read-check-write gap under READ COMMITTED
 @Transactional
 public void reserveBroken(List<Long> seatIds, long userId) {
-  List<Seat> seats = seatRepo.findAllById(seatIds);
-  if (seats.stream().anyMatch(s -> !"available".equals(s.getStatus()))) {
-    throw new SeatsNotAvailableException();
-  }
-  seats.forEach(s -> {
-    s.setStatus("reserved");
-    s.setHeldBy(userId);
-    s.setHeldUntil(Instant.now().plus(Duration.ofMinutes(10)));
-  });
-  seatRepo.saveAll(seats);
+    List<Seat> seats = seatRepo.findAllById(seatIds);
+    if (seats.stream().anyMatch(s -> !"available".equals(s.getStatus()))) {
+        throw new SeatsNotAvailableException();
+    }
+    seats.forEach(s -> {
+        s.setStatus("reserved");
+        s.setHeldBy(userId);
+        s.setHeldUntil(Instant.now().plus(Duration.ofMinutes(10)));
+    });
+    seatRepo.saveAll(seats);  // both TXs may commit overlapping seats
 }
+```
 
-// PRODUCTION — ordered pessimistic lock, all-or-nothing (Spring JDBC)
+```java
+// Production — ordered pessimistic lock, all-or-nothing (Spring JDBC)
 @Transactional
 public ReservationResponse reserve(List<Long> seatIds, long userId) {
-  List<Long> sortedIds = seatIds.stream().distinct().sorted().toList();
-  if (sortedIds.isEmpty() || sortedIds.size() > 6) {
-    throw new IllegalArgumentException("Select 1–6 seats");
-  }
+    List<Long> sortedIds = seatIds.stream().distinct().sorted().toList();
+    if (sortedIds.isEmpty() || sortedIds.size() > 6) {
+        throw new IllegalArgumentException("Select 1–6 seats");
+    }
 
-  List<Seat> locked = jdbc.query("""
-      SELECT id, status FROM seats
-      WHERE id = ANY (?)
-      ORDER BY id
-      FOR NO KEY UPDATE
-      """,
-      ps -> ps.setArray(1, ps.getConnection().createArrayOf("bigint", sortedIds.toArray(Long[]::new))),
-      seatRowMapper);
+    String lockSql = """
+        SELECT id, status FROM seats
+        WHERE id = ANY (?)
+        ORDER BY id
+        FOR NO KEY UPDATE
+        """;
 
-  if (locked.size() != sortedIds.size()) {
-    throw new SeatsNotFoundException(sortedIds);
-  }
-  List<Long> taken = locked.stream()
-      .filter(s -> !"available".equals(s.getStatus()))
-      .map(Seat::getId)
-      .toList();
-  if (!taken.isEmpty()) {
-    throw new SeatsNotAvailableException(taken);
-  }
+    List<Seat> locked = jdbc.query(lockSql,
+        ps -> ps.setArray(1, ps.getConnection()
+            .createArrayOf("bigint", sortedIds.toArray(Long[]::new))),
+        seatRowMapper);
 
-  Instant expiresAt = Instant.now().plus(Duration.ofMinutes(10));
-  int updated = jdbc.update("""
-      UPDATE seats
-      SET status = 'reserved', held_by = ?, held_until = ?, version = version + 1
-      WHERE id = ANY (?) AND status = 'available'
-      """,
-      userId, Timestamp.from(expiresAt), sortedIds.toArray(Long[]::new));
-  if (updated != sortedIds.size()) {
-    throw new ConcurrentModificationException("Seat race during update");
-  }
-  return new ReservationResponse(sortedIds, userId, expiresAt);
+    if (locked.size() != sortedIds.size()) {
+        throw new SeatsNotFoundException(sortedIds);
+    }
+    List<Long> taken = locked.stream()
+        .filter(s -> !"available".equals(s.getStatus()))
+        .map(Seat::getId)
+        .toList();
+    if (!taken.isEmpty()) {
+        throw new SeatsNotAvailableException(taken);
+    }
+
+    Instant expiresAt = Instant.now().plus(Duration.ofMinutes(10));
+    String updateSql = """
+        UPDATE seats
+        SET status = 'reserved', held_by = ?, held_until = ?, version = version + 1
+        WHERE id = ANY (?) AND status = 'available'
+        """;
+
+    int updated = jdbc.update(updateSql,
+        userId, Timestamp.from(expiresAt), sortedIds.toArray(Long[]::new));
+    if (updated != sortedIds.size()) {
+        throw new ConcurrentModificationException("Seat race during update");
+    }
+    return new ReservationResponse(sortedIds, userId, expiresAt);
 }
+```
 
-// Single-seat fast path — one atomic statement, no explicit transaction
+```java
+// Single-seat fast path — one atomic UPDATE, no explicit transaction
 public boolean claimSeat(long seatId, long userId) {
-  int n = jdbc.update("""
-      UPDATE seats SET status = 'reserved', held_by = ?, held_until = now() + interval '10 minutes'
-      WHERE id = ? AND status = 'available'
-      """, userId, seatId);
-  return n == 1;
+    int n = jdbc.update("""
+        UPDATE seats
+        SET status = 'reserved',
+            held_by = ?,
+            held_until = now() + interval '10 minutes'
+        WHERE id = ? AND status = 'available'
+        """, userId, seatId);
+    return n == 1;
 }
 ```
 
