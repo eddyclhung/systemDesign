@@ -34,6 +34,130 @@ Tradeoff: availability + partition tolerance vs strong consistency.
 
 
 <details>
+<summary><strong>Failures</strong></summary>
+
+**Hot key overloads one node**
+
+Single key QPS exceeds node capacity.
+
+_Fix:_ Client-side cache. Key splitting (hot_key:1, hot_key:2) merge on read.
+
+**Node failure during write**
+
+Write unavailable if strict quorum.
+
+_Fix:_ Sloppy quorum + hinted handoff.
+
+**Replica divergence**
+
+Silent data drift between nodes.
+
+_Fix:_ Merkle tree anti-entropy background repair.
+
+
+</details>
+
+
+<details>
+<summary><strong>Estimation</strong></summary>
+
+| Field | Value |
+|-------|-------|
+| Assumptions | 1B keys, 10K QPS reads, 5K QPS writes, N=3 |
+| Read QPS | 10K reads/s with R=2 quorum = 20K internal reads/s |
+| Write QPS | 5K×W=2 = 10K internal writes/s |
+| Storage | 1B × 1KB = 1 TB total — 333 GB per node at RF=3 |
+| Cache math | Hot key cache on client reduces 80% hot traffic |
+| Verdict | Hot keys and quorum math dominate design discussion. |
+
+
+</details>
+
+
+<details>
+<summary><strong>Design decisions</strong></summary>
+
+**W and R tuning**
+
+→ W=2,R=2,N=3 for balanced
+
+Higher W+R = stronger consistency, higher latency.
+
+_Revisit when:_ W=1,R=1 for cache-like tolerance of staleness.
+
+**Leaderless vs Raft per shard**
+
+→ Leaderless for availability
+
+Dynamo/Cassandra model. Raft per shard (TiKV) gives stronger consistency at cost.
+
+_Revisit when:_ Raft if financial/adjacent strong consistency needed.
+
+**Delete handling**
+
+→ Tombstone with vector clock
+
+Deletes are writes — propagate like puts.
+
+_Revisit when:_ TTL automatic expiry for ephemeral keys.
+
+
+</details>
+
+
+<details>
+<summary><strong>Follow-up Q&amp;A</strong></summary>
+
+**How is this different from Redis?**
+
+Redis is in-memory, often single-primary per shard, lower latency. Dynamo KV is disk-backed, leaderless, higher availability during partitions.
+
+**How do you add a node?**
+
+Join ring, steal vnodes from neighbors, stream data, go live. Minimal key remapping.
+
+**How do you handle network partition?**
+
+AP choice: both sides accept writes. Vector clocks detect conflicts on heal.
+
+**How do you cap stale reads?**
+
+Increase R and W. R+W>N guarantees overlap with latest write.
+
+**How do you implement CAS?**
+
+Read vector clock, put only if clock matches expected — lightweight transaction.
+
+**How do you monitor health?**
+
+Gossip membership, per-node latency, repair lag, sibling rate metric.
+
+**How do you backup?**
+
+Incremental snapshots per node + cross-region replication.
+
+**When not to build this?**
+
+If Postgres/Redis/DynamoDB managed service fits — build only when hyperscale or custom CAP point needed.
+
+
+</details>
+
+
+<details>
+<summary><strong>Evolution</strong></summary>
+
+**v1 — Single node** — Redis/Postgres. No partition tolerance.
+
+**v2 — Sharded replicas** — Consistent hash, RF=3, quorum reads/writes.
+
+**v3 — Production Dynamo** — Hinted handoff, Merkle repair, tunable W/R, monitoring.
+
+
+</details>
+
+
+<details>
 <summary><strong>Why it&#x27;s hard to scale</strong></summary>
 
 KV store scales by adding nodes to the ring. Pain points: hot keys, quorum latency, conflict resolution complexity.

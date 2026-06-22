@@ -219,6 +219,8 @@ def write_v15_index_html(systems: list[dict]) -> None:
 <li><strong>High-level design</strong> — client → LB → services → DB/cache</li>
 <li><strong>Deep dives</strong> — 2–3 hardest problems, tradeoffs, failure modes</li>
 </ol>
+<h2>Architecture framework</h2>
+<p>Universal skeleton → two questions (read vs write · money vs likes) → five archetypes: read-heavy feed, transactional core, real-time pipe, marketplace, compute pipeline. <a href="../../system_design_cheatsheet_v15_github.html#ref-arch-framework">Open full section</a> · <a href="https://medium.com/javarevisited/the-system-design-architecture-framework-how-to-design-any-system-in-an-interview-without-3521c113186b" rel="noopener">Source article</a></p>
 <p><strong>Key numbers:</strong> Redis ~100K–1M ops/s · Single DB ~10K–50K QPS · Kafka ~1M+ msgs/s · Cross-region ~100–200ms</p>"""
 
     links = """<div class="note">

@@ -208,6 +208,9 @@ ul.gl li::before{content:'·';position:absolute;left:4px;color:var(--txt-ter);fo
 .fwn{font-size:9px;font-weight:500;color:var(--txt-info);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
 .fwtt{font-size:12px;font-weight:500;margin-bottom:3px}
 .fwd{font-size:11px;color:var(--txt-sec);line-height:1.5}
+.arch-tag{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--txt-warn);background:var(--bg-warn);border:.5px solid var(--bdr-warn);border-radius:4px;padding:2px 6px;display:inline-block;margin-bottom:6px}
+.arch-src{font-size:10.5px;color:var(--txt-ter);margin:0 16px 12px;line-height:1.55;padding-top:16px}
+.arch-src a{color:var(--txt-info)}
 .nums{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px;margin-top:10px}
 .nc{background:var(--bg-sec);border:.5px solid var(--bdr-ter);border-radius:var(--r);padding:7px 10px}
 .nl{font-size:10px;color:var(--txt-ter)}
@@ -454,6 +457,7 @@ html:not(.js-enabled) .js-only{display:none!important}
 
     <div class="sb-section">Jump to</div>
     <a class="sb-nav" href="#ref-framework" onclick="jumpTo('ref-framework',event)">📐 Framework</a>
+    <a class="sb-nav" href="#ref-arch-framework" onclick="jumpTo('ref-arch-framework',event)">🏗 Architecture</a>
     <a class="sb-nav" href="#est-worksheet" onclick="jumpTo('est-worksheet',event)">🧮 Estimation</a>
     <a class="sb-nav" href="#ref-db" onclick="jumpTo('ref-db',event)">🗄 DB chooser</a>
     <a class="sb-nav" href="#ref-cap" onclick="jumpTo('ref-cap',event)">⚖️ CAP theorem</a>
@@ -591,6 +595,174 @@ html:not(.js-enabled) .js-only{display:none!important}
       <div class="est-ws-field"><label for="est-rw">Read : write ratio</label><input id="est-rw" type="text" placeholder="e.g. 100:1" oninput="calcEst()"></div>
     </div>
     <div class="est-ws-out" id="est-out">Enter DAU and actions/day to compute QPS and storage.</div>
+  </div>
+</div>
+
+
+<!-- ═══════════ ARCHITECTURE FRAMEWORK (derive, don't memorize) ═══════════ -->
+<div class="fw db-section" id="ref-arch-framework">
+  <div class="db-section-title">Architecture framework — derive any system in an interview</div>
+  <div class="db-section-sub">Draw one universal skeleton, answer two questions, name an archetype — then go deep on the one box that matters. Inspired by <a href="https://medium.com/javarevisited/the-system-design-architecture-framework-how-to-design-any-system-in-an-interview-without-3521c113186b" target="_blank" rel="noopener">Firdaus Jawed · Javarevisited</a>.</div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">🦴 Part 1 — Universal skeleton (draw this first, every time)</span>
+    <span class="db-fw-arrow open">▶</span>
+  </div>
+  <div class="db-fw-body open">
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:10px">Instagram, Paytm, WhatsApp — different products, same bones. Sketch this in ~30 seconds, then <b>delete what you don't need</b> and <b>thicken what the problem demands</b>.</p>
+    <div class="ascii-wrap"><pre>Client
+  → CDN / Edge          (static assets, TLS, basic DDoS)
+  → Load Balancer       (spread traffic)
+  → API Gateway         (auth, rate limit, routing)
+  → App Services        (business logic)
+       → Cache          (hot reads — Redis)
+       → Database       (source of truth)
+       → Blob Store     (images, files — S3)
+       → Search Index   (text queries — Elasticsearch)
+       → Queue + Workers (async / slow jobs)
+  → Observability       (logs, metrics, traces — spans everything)</pre></div>
+    <div class="closer">Interview line: "I'll start with the standard skeleton and trim it — most systems share this shape; the interesting part is which layer we scale."</div>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">❓ Part 2 — Two questions that decide everything</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <div class="clarify-grid" style="margin-bottom:10px">
+      <div class="clarify-item"><b>Q1 · Read-heavy or write-heavy?</b><br>A <em>read</em> = someone views data (scroll feed). A <em>write</em> = someone changes data (post, pay, order).<br><br><b>Reads scale by COPYING</b> — read replicas + cache (100 students photocopy one notebook).<br><b>Writes scale by DIVIDING</b> — sharding (split notebook into sections A–H, I–P, Q–Z).</div>
+      <div class="clarify-item"><b>Q2 · Money or likes?</b><br>When copies lag, is stale data acceptable for <em>this feature</em>?<br><br><b>Likes / feeds</b> — 2s stale count is fine → eventual consistency, huge scale.<br><b>Money / inventory</b> — stale balance or double-booked seat is a lie → strong consistency, slower, worth it.</div>
+    </div>
+    <div class="closer">These two answers route you to one of five archetypes below. Say them out loud before you draw details.</div>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">📋 Archetype cheat sheet — spot · DB · grow big · keep thin · pattern</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <div class="db-table-wrap">
+      <table class="db-table">
+        <thead><tr><th>Archetype</th><th>Spot it by</th><th>DB choice</th><th>Grow BIG</th><th>Keep thin</th><th>Signature pattern</th></tr></thead>
+        <tbody>
+          <tr><td><span class="db-name">Read-heavy feed</span></td><td>1000s of reads per write; staleness OK</td><td>SQL + replicas + Redis</td><td>CDN, cache, fan-out</td><td>Strong consistency on hot path</td><td>Fan-out-on-write</td></tr>
+          <tr><td><span class="db-name">Transactional core</span></td><td>Money, balances, seats — can't double-book</td><td>ACID SQL + ledger</td><td>Correctness machinery</td><td>Cache, CDN on money path</td><td>Idempotency key</td></tr>
+          <tr><td><span class="db-name">Real-time pipe</span></td><td>Server must push first; ms latency</td><td>Cassandra + Redis</td><td>WebSockets, pub/sub</td><td>Heavy search, complex joins</td><td>Connection registry</td></tr>
+          <tr><td><span class="db-name">Marketplace</span></td><td>Many entities; no single R:W answer</td><td>One specialist DB per service</td><td>Depends per counter</td><td>Depends per counter</td><td>Saga + events</td></tr>
+          <tr><td><span class="db-name">Compute pipeline</span></td><td>Answers needed later, not at request time</td><td>Lake + columnar warehouse</td><td>Queue, batch/stream</td><td>Request-time compute</td><td>Precompute-and-serve</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">① Read-heavy feed — Instagram, YouTube, Twitter</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <span class="arch-tag">Archetype 1</span>
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:8px"><b>Strategy:</b> answer reads without touching the DB — push precomputed feeds as close to the user as possible.</p>
+    <div class="ascii-wrap"><pre>READ:  Client → CDN (media) → LB → Feed Service → Redis (precomputed feed) → miss? read replica
+WRITE: Post Service → Primary DB → Queue → Fan-out workers → insert into each follower's cached feed</pre></div>
+    <ul style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin:8px 0 8px 18px">
+      <li><b>DB:</b> SQL primary + read replicas; denormalized feed lists in Redis — storage cheap, read latency is not</li>
+      <li><b>Name-drop:</b> cache-aside, read replicas, fan-out-on-write, CDN, denormalization</li>
+      <li><b>Trap:</b> celebrity with 100M followers → hybrid fan-out (normal users write-time; celebrities read-time merge)</li>
+      <li><b>Trap:</b> cache invalidation → TTL + accept N seconds staleness, or event-driven eviction</li>
+    </ul>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">② Transactional core — payments, booking, inventory</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <span class="arch-tag">Archetype 2</span>
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:8px"><b>Strategy:</b> one source of truth, append-only facts, every request safe to retry. Sacrifice speed for truth.</p>
+    <div class="ascii-wrap"><pre>Client → Gateway → Payment Service (idempotency key on every request)
+                          ↓
+                   ACID SQL — LEDGER (append-only: debit A, credit B; balance = SUM)
+                          ↓
+                   outbox table (same TX) → Queue → notifications / analytics</pre></div>
+    <ul style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin:8px 0 8px 18px">
+      <li><b>DB:</b> Postgres/MySQL — never mutate balances; append immutable entries</li>
+      <li><b>Name-drop:</b> idempotency keys, double-entry ledger, outbox pattern, saga, pessimistic locking for seats</li>
+      <li><b>Trap:</b> payment spans two services → saga with compensating actions</li>
+      <li><b>Trap:</b> "cache the balance?" → stale balance is wrong data, not slow data</li>
+    </ul>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">③ Real-time pipe — WhatsApp, live games, notifications</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <span class="arch-tag">Archetype 3</span>
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:8px"><b>Strategy:</b> keep a permanent open line (WebSocket) per user; route between gateway servers via registry + pub/sub.</p>
+    <div class="ascii-wrap"><pre>Phone A ══ WebSocket ══ Gateway 1 ──► Connection Registry (Redis: user B → server 2)
+                                              │
+Phone B ══ WebSocket ══ Gateway 2 ◄── Pub/Sub bus
+                              │
+                    Cassandra (history) + Queue (offline push)</pre></div>
+    <ul style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin:8px 0 8px 18px">
+      <li><b>DB:</b> Cassandra partitioned by conversation_id; Redis for presence, typing, unread</li>
+      <li><b>Name-drop:</b> WebSockets, pub/sub, connection registry, heartbeats, per-conversation sequence numbers</li>
+      <li><b>Trap:</b> gateway crash → clients reconnect with backoff; pull missed msgs from history</li>
+      <li><b>Trap:</b> 500-person group chat = fan-out at the socket layer (same idea as feeds)</li>
+    </ul>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">④ Marketplace — Amazon, Uber, Swiggy (polyglot by design)</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <span class="arch-tag">Archetype 4</span>
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:8px"><b>Strategy:</b> decompose into sub-systems; classify each with Q1/Q2; one specialist DB per service; connect with events.</p>
+    <div class="ascii-wrap"><pre>Gateway
+  ├─ Catalog (document DB + cache)     read-heavy
+  ├─ Search (Elasticsearch)            librarian
+  ├─ Cart (Redis)                      ephemeral
+  ├─ Orders + Inventory (SQL + locks)  can't oversell
+  └─ Payments (Archetype 2 ledger)     money path
+
+Checkout saga via Queue: order → pay → reserve stock → assign delivery (each step has undo)</pre></div>
+    <ul style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin:8px 0 8px 18px">
+      <li><b>Name-drop:</b> database-per-service, saga, CQRS, optimistic vs pessimistic inventory locks</li>
+      <li><b>Trap:</b> flash sale 10K buyers / 100 units → atomic <code>UPDATE … WHERE qty &gt; 0</code> is the choke point; queue the rest</li>
+    </ul>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">⑤ Compute pipeline — analytics, logs, ML, recommendations</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <span class="arch-tag">Archetype 5</span>
+    <p style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin-bottom:8px"><b>Strategy:</b> queue absorbs the flood; store raw cheap; batch/stream process; precompute so the dashboard read is instant.</p>
+    <div class="ascii-wrap"><pre>Events → Kafka (buffer, nothing dropped)
+           ├─ Stream (Flink) — near-live approximate counters
+           └─ Batch (Spark) — nightly exact aggregates
+                    ↓
+           Data Lake (S3) → Columnar warehouse (BigQuery / ClickHouse)
+                    ↓
+           Serving cache → dashboard (never compute at request time)</pre></div>
+    <ul style="font-size:11.5px;color:var(--txt-sec);line-height:1.65;margin:8px 0 8px 18px">
+      <li><b>Name-drop:</b> queue-buffered ingestion, ETL, precompute-and-serve, idempotent replayable consumers</li>
+      <li><b>Trap:</b> "need near-real-time?" → stream path for fresh-approximate + batch for exact (Lambda architecture)</li>
+    </ul>
+  </div>
+
+  <div class="db-fw-hdr" onclick="toggleDb(this)">
+    <span class="db-fw-lbl">⚡ Part 4 — Live derivation: Splitwise in 60 seconds</span>
+    <span class="db-fw-arrow">▶</span>
+  </div>
+  <div class="db-fw-body">
+    <div class="sq"><b>1.</b> Draw skeleton (30s).<br>
+<b>2.</b> Q1 — add expense vs check balance? Both tiny; scale is NOT the hard problem → skip CDN, skip sharding; modest cache only.<br>
+<b>3.</b> Q2 — it's money → <b>Archetype 2</b>: Postgres, append-only expense ledger, idempotency keys, derive balances from facts.<br>
+<b>4.</b> Spend remaining minutes on the <em>real</em> hard problem: debt-simplification graph (A owes B, B owes C → minimize transfers).</div>
+    <div class="closer" style="margin-top:10px"><b>Staff signal:</b> "Everything else here is standard — <em>this</em> is the hard part of this system." Interviewers listen for that sentence.</div>
   </div>
 </div>
 
@@ -8973,7 +9145,7 @@ function openDbPanel(hdr){
 function jumpScrollTarget(el){
   if(!el)return el;
   if(el.id==='ref-framework') return el.querySelector('.fwt')||el;
-  if(el.id==='ref-db'||el.id==='ref-quickref') return el.querySelector('.db-section-title')||el;
+  if(el.id==='ref-arch-framework'||el.id==='ref-db'||el.id==='ref-quickref') return el.querySelector('.db-section-title')||el;
   return el;
 }
 function jumpTo(id,e){
@@ -8984,7 +9156,7 @@ function scrollToEl(el,e){
   if(!el)return;
   let reflow=false;
   if(el.classList.contains('db-fw-hdr')) reflow=openDbPanel(el);
-  else if(el.id==='ref-db') reflow=openDbPanel(el.querySelector('.db-fw-hdr'));
+  else if(el.id==='ref-db'||el.id==='ref-arch-framework') reflow=openDbPanel(el.querySelector('.db-fw-hdr'));
   const target=jumpScrollTarget(el);
   const doScroll=()=>scrollMainTo(target,mainScrollOffset());
   if(reflow) setTimeout(doScroll,80);

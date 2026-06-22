@@ -136,6 +136,8 @@ Staff+ prep built around a repeatable delivery framework.
 
 **Delivery framework** — six-step flow plus clarifying questions, latency/QPS numbers, and a live **estimation worksheet**.
 
+**Architecture framework** — universal skeleton, two decision questions (read vs write · money vs likes), five archetypes with blueprints, and a live Splitwise derivation. Based on [Firdaus Jawed’s framework](https://medium.com/javarevisited/the-system-design-architecture-framework-how-to-design-any-system-in-an-interview-without-3521c113186b) (Javarevisited).
+
 **Database chooser** — comparison table (open by default), decision tree, per-DB deep dives, anti-patterns.
 
 **Quick reference** — CAP, protocols, consistency patterns, **cloud services + AWS commands** (full tables in v10).

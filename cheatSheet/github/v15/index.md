@@ -11,6 +11,8 @@ GitHub-friendly view of **v15**. Use the links below — GitHub renders Markdown
 5. **High-level design** — client → LB → services → DB/cache
 6. **Deep dives** — 2–3 hardest problems, tradeoffs, failure modes
 
+**Architecture framework** — skeleton → 2 questions → 5 archetypes (feed, transactional, real-time, marketplace, pipeline). Derive designs instead of memorizing them.
+
 **Key numbers:** Redis ~100K–1M ops/s · Single DB ~10K–50K QPS · Kafka ~1M+ msgs/s · Cross-region ~100–200ms
 
 [Full interactive cheatsheet](../system_design_cheatsheet_v14.html) includes DB chooser, cloud commands, and estimation worksheet.
