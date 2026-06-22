@@ -74,6 +74,7 @@ SECTION_SEV = {
 PATTERN_OVERRIDE = {
     "High write burst (flash sale)": "high",
     "Prevent double booking": "high",
+    "Write contention (multi-seat reservation)": "high",
     "Cascading failure": "high",
     "DB primary fails": "high",
     "Metastable failure": "critical",
@@ -116,6 +117,7 @@ PROBLEM_STATEMENTS: dict[str, str] = {
     "High write burst (flash sale)": "A flash sale creates a sudden 50× write spike — how do you handle it?",
     "Idempotent writes": "Network retries cause duplicate writes — how do you make writes idempotent?",
     "Prevent double booking": "Two users book the last hotel room at the same time — how do you prevent double booking?",
+    "Write contention (multi-seat reservation)": "80,000 seats, 300K users hit Reserve at once — two fans book overlapping seats and you see ERROR: deadlock detected. How do you prevent double-booking and deadlocks at the database layer?",
     "Distributed counter": "You need a globally accurate view count across millions of servers — how do you implement it?",
     "Unique ID at scale": "You need unique IDs at 10,000 per millisecond — what approach do you use?",
     "Strong vs eventual consistency": "When would you choose strong consistency versus eventual consistency?",
@@ -188,6 +190,7 @@ PATTERN_SECTIONS: list[tuple[str, list[str]]] = [
             "High write burst (flash sale)",
             "Idempotent writes",
             "Prevent double booking",
+            "Write contention (multi-seat reservation)",
             "Distributed counter",
             "Unique ID at scale",
         ],
@@ -393,6 +396,8 @@ def parse_patterns(body: str) -> list[dict]:
         m = re.search(r"📊 \*\*Visual:\*\*\s*(.+)", rest)
         if m:
             visual = m.group(1).strip()
+        m = re.search(r"```java\n(.*?)```", rest, re.S)
+        java_code = m.group(1).strip() if m else ""
         if not staff or title.startswith("Diagram ·") or title.startswith("Pattern →"):
             continue
         if not problem:
@@ -410,6 +415,7 @@ def parse_patterns(body: str) -> list[dict]:
                 "trade": trade,
                 "example": example,
                 "visual": visual,
+                "java": java_code,
             }
         )
     return patterns
@@ -750,6 +756,7 @@ def build_html(intro: str, sections: list[dict], md: str = "") -> str:
                         "trade_html": md_inline(p["trade"]),
                         "example_html": md_inline(p["example"]),
                         "visual_html": rewrite_visual_html(p["visual"]),
+                        "java_html": html.escape(p.get("java", "")) if p.get("java") else "",
                     }
                     for p in sec["patterns"]
                 ],
@@ -874,6 +881,8 @@ h1{{font-size:1.75rem;margin-bottom:8px;letter-spacing:-.02em}}
 .callout.pattern{{background:var(--pattern-bg);border-color:var(--pattern-bdr)}}
 .callout.prep{{background:var(--prep-bg);border-color:var(--prep-bdr)}}
 .callout.problem{{background:var(--prep-bg);border-color:var(--prep-bdr);font-style:italic}}
+.qf-java{{font-family:var(--mono);font-size:.72rem;line-height:1.5;background:rgba(0,0,0,.06);padding:12px 14px;margin:0 16px 14px;border-radius:8px;overflow-x:auto;white-space:pre;color:var(--text)}}
+html[data-theme="dark"] .qf-java{{background:rgba(255,255,255,.06)}}
 .visual{{margin:0 16px 14px;font-size:.82rem;color:var(--muted)}}
 .visual a{{font-weight:500}}
 .sb-link{{display:block;padding:5px 10px;font-size:.8rem;color:var(--muted);text-decoration:none;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
@@ -1027,7 +1036,7 @@ function render() {{
   DATA.forEach(sec => {{
     const patterns = sec.patterns.filter(p => {{
       if (!showAll && !active.includes(p.severity)) return false;
-      const hay = (p.title + ' ' + (p.problem||'') + ' ' + (p.weak||'') + ' ' + p.staff + ' ' + p.trade).toLowerCase();
+      const hay = (p.title + ' ' + (p.problem||'') + ' ' + (p.weak||'') + ' ' + p.staff + ' ' + p.trade + ' ' + (p.java||'')).toLowerCase();
       return !q || hay.includes(q);
     }});
     if (!patterns.length) return;
@@ -1065,6 +1074,7 @@ function render() {{
           ${{p.staff_plus_html ? `<div class="callout pattern"><strong>🟢 Staff+</strong>${{p.staff_plus_html}}</div>` : ''}}
           <div class="callout ${{p.severity}}" style="opacity:.92"><strong>Trade-offs</strong>${{p.trade_html}}</div>
           <div class="callout ${{p.severity}}" style="opacity:.85"><strong>Example</strong>${{p.example_html}}</div>
+          ${{p.java_html ? `<pre class="qf-java"><code>${{p.java_html}}</code></pre>` : ''}}
           ${{p.visual_html ? `<div class="visual">📊 <strong>Visual:</strong> ${{p.visual_html}}</div>` : ''}}
         </div>`;
       card.querySelector('.card-hdr').onclick = () => card.classList.toggle('open');

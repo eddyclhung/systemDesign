@@ -27,6 +27,8 @@ Each pattern below includes all three. **Default answer in interview:** Strong i
 
 
 
+
+
 ## Severity legend
 
 | Badge | Level | When interviewers probe here |
@@ -1195,6 +1197,93 @@ flowchart TD
 **Trade-offs:** Pessimistic locks reduce concurrency (hot row serialization). Optimistic fails under high contention — need UX retry.
 
 **Example:** *Airline seat map — row lock on `seat_id` for duration of checkout session.*
+
+📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
+
+### 🟠 Write contention (multi-seat reservation)
+
+> **💬 Problem:** 80,000 seats, 300K users hit Reserve at once — two fans book overlapping seats and you see `ERROR: deadlock detected`. How do you prevent double-booking and deadlocks at the database layer?
+
+
+> [!CAUTION]
+> **🔴 Weak** — Wrap read-check-update in `@Transactional` and assume the transaction isolates you. Under PostgreSQL **READ COMMITTED**, each statement gets its own snapshot — User A and B both `SELECT` seats 102–103 as available, then both `UPDATE`. Atomic commit, **double-booked rows**. `transaction` = atomicity, not row isolation.
+>
+> [!WARNING]
+> **🟡 Strong** — **Hot path (multi-seat, all-or-nothing):** sort seat IDs, then `SELECT … ORDER BY id FOR NO KEY UPDATE` (PostgreSQL) inside one transaction. Validate every seat is `available`, batch `UPDATE`, commit — lock hold under ~10ms. **Why sort?** Without `ORDER BY id`, overlapping reservations acquire row locks in heap-dependent order → circular wait → deadlock after `deadlock_timeout` (~1s). **Why NO KEY UPDATE?** We only change `status` / `held_by`, not key columns — avoids blocking FK `INSERT`s on child booking rows. **Alternatives:** single-row `UPDATE … WHERE status='available'` (fastest, one seat); optimistic `version` column (`UPDATE … WHERE id=? AND version=?`, retry on 0 rows); **SERIALIZABLE** for aggregate limits (max 6 seats/user) but needs app-wide adoption + retry on serialization failure. **Never** call payment APIs inside the lock window. Two-phase: **reserve** (10-min TTL) → pay → **confirm** with separate pessimistic lock on *your* held seats. Background sweeper releases expired holds (partial index on `held_until WHERE status='reserved'`).
+>
+> [!TIP]
+> **🟢 Staff+** — Pessimistic locks serialize hot rows — 499 users wait if 500 want the same section. Optimistic fails fast but UX retries spike under Beyoncé-on-sale load. REPEATABLE READ stops lost updates on the *same* row but not write skew on disjoint seats for per-user caps. Rate-limit before DB (Redis token bucket), reads from replica for seat map, PgBouncer transaction pooling (~500 conns). Metrics: `reservation_conflict_rate`, `deadlock_count`, `lock_wait_p99`. Inspired by [Alina Kovtun — seat reservation, deadlocks & isolation levels](https://medium.com/womenintechnology/building-a-seat-reservation-system-deadlock-avoidance-and-transaction-isolation-levels-cad7186eb589). Name metric + revisit trigger when they push depth.
+
+**Trade-offs:** Pessimistic = correct + simple but caps throughput on contested rows. Optimistic / conditional UPDATE = higher throughput, worse UX under contention. SERIALIZABLE = strongest invariants, mandatory retries + false-positive aborts. Ordered locking is non-negotiable for multi-row claims.
+
+**Example:** *Concert on-sale: User A wants [101,102,103], User B wants [102,103,104]. Unordered `FOR UPDATE` deadlocks in prod after first VACUUM; `ORDER BY id` + `FOR NO KEY UPDATE` serializes safely. Reject with 409 beats double-sell.*
+
+```java
+// BROKEN — read-check-write gap under READ COMMITTED
+@Transactional
+public void reserveBroken(List<Long> seatIds, long userId) {
+  List<Seat> seats = seatRepo.findAllById(seatIds);
+  if (seats.stream().anyMatch(s -> !"available".equals(s.getStatus()))) {
+    throw new SeatsNotAvailableException();
+  }
+  seats.forEach(s -> {
+    s.setStatus("reserved");
+    s.setHeldBy(userId);
+    s.setHeldUntil(Instant.now().plus(Duration.ofMinutes(10)));
+  });
+  seatRepo.saveAll(seats);
+}
+
+// PRODUCTION — ordered pessimistic lock, all-or-nothing (Spring JDBC)
+@Transactional
+public ReservationResponse reserve(List<Long> seatIds, long userId) {
+  List<Long> sortedIds = seatIds.stream().distinct().sorted().toList();
+  if (sortedIds.isEmpty() || sortedIds.size() > 6) {
+    throw new IllegalArgumentException("Select 1–6 seats");
+  }
+
+  List<Seat> locked = jdbc.query("""
+      SELECT id, status FROM seats
+      WHERE id = ANY (?)
+      ORDER BY id
+      FOR NO KEY UPDATE
+      """,
+      ps -> ps.setArray(1, ps.getConnection().createArrayOf("bigint", sortedIds.toArray(Long[]::new))),
+      seatRowMapper);
+
+  if (locked.size() != sortedIds.size()) {
+    throw new SeatsNotFoundException(sortedIds);
+  }
+  List<Long> taken = locked.stream()
+      .filter(s -> !"available".equals(s.getStatus()))
+      .map(Seat::getId)
+      .toList();
+  if (!taken.isEmpty()) {
+    throw new SeatsNotAvailableException(taken);
+  }
+
+  Instant expiresAt = Instant.now().plus(Duration.ofMinutes(10));
+  int updated = jdbc.update("""
+      UPDATE seats
+      SET status = 'reserved', held_by = ?, held_until = ?, version = version + 1
+      WHERE id = ANY (?) AND status = 'available'
+      """,
+      userId, Timestamp.from(expiresAt), sortedIds.toArray(Long[]::new));
+  if (updated != sortedIds.size()) {
+    throw new ConcurrentModificationException("Seat race during update");
+  }
+  return new ReservationResponse(sortedIds, userId, expiresAt);
+}
+
+// Single-seat fast path — one atomic statement, no explicit transaction
+public boolean claimSeat(long seatId, long userId) {
+  int n = jdbc.update("""
+      UPDATE seats SET status = 'reserved', held_by = ?, held_until = now() + interval '10 minutes'
+      WHERE id = ? AND status = 'available'
+      """, userId, seatId);
+  return n == 1;
+}
+```
 
 📊 **Visual:** [Seat hold 2-phase](interview-quick-fire.html#seat-hold)
 
